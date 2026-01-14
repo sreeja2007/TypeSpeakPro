@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Activity, Zap, Keyboard, Trophy, Calendar, User, Mail, Shield, BookOpen } from "lucide-react";
+import { Activity, Zap, Keyboard, Trophy, Calendar, User, Mail, Shield, BookOpen, Mic } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
@@ -19,7 +19,11 @@ const Dashboard = () => {
         totalTime: 0,
         testsCompleted: 0,
         bestWpm: 0,
-        rank: 0
+        rank: 0,
+        voicePoints: 0,
+        voiceAccuracy: 0,
+        verbalPoints: 0,
+        verbalAccuracy: 0
     });
     const [weeklyData, setWeeklyData] = useState<any[]>([]);
     const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -39,6 +43,11 @@ const Dashboard = () => {
             .select('*')
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
+
+        const { data: practiceResults, error: practiceError } = await supabase
+            .from('practice_results')
+            .select('*')
+            .eq('user_id', user.id); // Fetch practice results
 
         if (error || !allResults) {
             console.error('Error fetching dashboard data:', error);
@@ -66,13 +75,30 @@ const Dashboard = () => {
             rank = (count || 0) + 1;
         }
 
+        // Calculate Practice Points & Accuracy
+        const voiceResults = practiceResults ? practiceResults.filter((r: any) => r.practice_type === 'listening') : [];
+        const voicePoints = voiceResults.reduce((acc: number, curr: any) => acc + (curr.score || 0), 0);
+        const voiceAccuracy = voiceResults.length > 0
+            ? Math.round(voiceResults.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / voiceResults.length)
+            : 0;
+
+        const verbalResults = practiceResults ? practiceResults.filter((r: any) => r.practice_type === 'verbal') : [];
+        const verbalPoints = verbalResults.reduce((acc: number, curr: any) => acc + (curr.score || 0), 0);
+        const verbalAccuracy = verbalResults.length > 0
+            ? Math.round(verbalResults.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / verbalResults.length)
+            : 0;
+
         setStats({
             avgWpm,
             avgAccuracy,
             totalTime: totalTimeSeconds,
             testsCompleted: totalTests,
             bestWpm,
-            rank
+            rank,
+            voicePoints,
+            voiceAccuracy,
+            verbalPoints,
+            verbalAccuracy
         });
 
         // 2. Prepare Weekly Chart Data
@@ -219,6 +245,22 @@ const Dashboard = () => {
                             <p className="text-xs text-neutral-500 mt-1">Total sessions</p>
                         </CardContent>
                     </Card>
+
+                    <Card className="bg-neutral-900/50 border-white/5 backdrop-blur-sm hover:bg-neutral-900/80 transition-all duration-300 group cursor-pointer" onClick={() => navigate('/voice-practice')}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-neutral-400 group-hover:text-teal-400 transition-colors">
+                                Voice Practice
+                            </CardTitle>
+                            <Mic className="h-4 w-4 text-teal-500" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-white">{stats.voicePoints}</div>
+                            <p className="text-xs text-neutral-500 mt-1">Total Points</p>
+                            <p className="text-xs text-teal-400 mt-1">Avg Accuracy: {stats.voiceAccuracy}%</p>
+                        </CardContent>
+                    </Card>
+
+                    {/* Verbal Practice Stats */}
                     <Card className="bg-neutral-900/50 border-white/5 backdrop-blur-sm hover:bg-neutral-900/80 transition-all duration-300 group cursor-pointer" onClick={() => navigate('/verbal-practice')}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-neutral-400 group-hover:text-green-400 transition-colors">
@@ -227,8 +269,9 @@ const Dashboard = () => {
                             <BookOpen className="h-4 w-4 text-green-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold text-white">Start</div>
-                            <p className="text-xs text-neutral-500 mt-1">Improve vocabulary</p>
+                            <div className="text-2xl font-bold text-white">{stats.verbalPoints}</div>
+                            <p className="text-xs text-neutral-500 mt-1">Total Points</p>
+                            <p className="text-xs text-green-400 mt-1">Avg Accuracy: {stats.verbalAccuracy}%</p>
                         </CardContent>
                     </Card>
                 </div>
@@ -415,7 +458,7 @@ const Dashboard = () => {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

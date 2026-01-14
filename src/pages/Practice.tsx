@@ -5,11 +5,33 @@ import { Button } from '@/components/ui/button';
 import TypingTest from '@/components/typing/TypingTest';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import LaptopSuggestionModal from '@/components/LaptopSuggestionModal';
+import RankedConfigModal from '@/components/typing/RankedConfigModal';
+import { RoomConfig } from '@/hooks/useMultiplayer';
 
 const Practice = () => {
     const navigate = useNavigate();
-    const [selectedMode, setSelectedMode] = useState<'solo' | 'multiplayer' | null>(null);
+    const [selectedMode, setSelectedMode] = useState<'solo' | 'multiplayer' | 'ranked_race' | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showLaptopSuggestion, setShowLaptopSuggestion] = useState(false);
+    const [isRankedConfigOpen, setIsRankedConfigOpen] = useState(false);
+    const [rankedConfig, setRankedConfig] = useState<RoomConfig | null>(null);
+
+    // Mobile Laptop Suggestion Logic
+    React.useEffect(() => {
+        const checkMobile = () => {
+            const isMobile = window.innerWidth < 768; // Standard mobile breakpoint
+            // Randomly show popup (e.g., 60% chance) if mobile
+            if (isMobile && Math.random() > 0.4) {
+                // Short delay for better UX
+                setTimeout(() => {
+                    setShowLaptopSuggestion(true);
+                }, 1500);
+            }
+        };
+
+        checkMobile();
+    }, []);
 
     return (
         <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-primary/30 relative overflow-hidden">
@@ -53,8 +75,6 @@ const Practice = () => {
                 <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-[128px] opacity-20 animate-pulse-slow delay-1000"></div>
             </div>
 
-
-
             <main className={`flex-1 flex flex-col items-center px-4 sm:px-8 relative w-full max-w-7xl mx-auto ${selectedMode ? 'justify-center min-h-screen pt-0' : 'pt-20'} pb-12`}>
 
                 {/* Hero Section */}
@@ -78,49 +98,72 @@ const Practice = () => {
 
                 {selectedMode === null ? (
                     // Mode Selection Screen
-                    <div className="w-full max-w-4xl grid md:grid-cols-2 gap-6 animate-in zoom-in-95 duration-500">
+                    <div className="w-full max-w-6xl grid md:grid-cols-3 gap-6 animate-in zoom-in-95 duration-500">
                         {/* Solo Mode Card */}
                         <div
                             onClick={() => setSelectedMode('solo')}
-                            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 transition-all cursor-pointer hover:border-primary/50 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] hover:-translate-y-1"
+                            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition-all cursor-pointer hover:border-primary/50 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.1)] hover:-translate-y-1"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                            <div className="relative z-10 flex flex-col h-full gap-6">
-                                <div className="p-4 w-fit rounded-2xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300 ring-1 ring-primary/20">
-                                    <User className="w-8 h-8" />
+                            <div className="relative z-10 flex flex-col h-full gap-5">
+                                <div className="p-3 w-fit rounded-2xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300 ring-1 ring-primary/20">
+                                    <User className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold mb-3 text-white group-hover:text-primary transition-colors">Solo Practice</h2>
-                                    <p className="text-muted-foreground leading-relaxed">
-                                        Focus on your own speed and accuracy. Customize your test settings and track your personal progress.
+                                    <h2 className="text-xl font-bold mb-2 text-white group-hover:text-primary transition-colors">Solo Practice</h2>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Focus on your own speed and accuracy. Customize your test settings and track progress.
                                     </p>
                                 </div>
-                                <div className="mt-auto pt-4 flex items-center text-primary font-medium opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                                <div className="mt-auto pt-4 flex items-center text-primary font-medium opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-sm">
                                     Start Session <Zap className="w-4 h-4 ml-2 fill-current" />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Multiplayer Mode Card */}
+                        {/* Ranked Race (AI) Card */}
                         <div
-                            onClick={() => setSelectedMode('multiplayer')}
-                            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-8 transition-all cursor-pointer hover:border-teal-500/50 hover:shadow-[0_0_40px_-10px_rgba(45,212,191,0.1)] hover:-translate-y-1"
+                            onClick={() => setIsRankedConfigOpen(true)}
+                            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition-all cursor-pointer hover:border-teal-500/50 hover:shadow-[0_0_40px_-10px_rgba(45,212,191,0.1)] hover:-translate-y-1"
                         >
                             <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                            <div className="relative z-10 flex flex-col h-full gap-6">
-                                <div className="p-4 w-fit rounded-2xl bg-teal-500/10 text-teal-400 group-hover:scale-110 transition-transform duration-300 ring-1 ring-teal-500/20">
-                                    <Swords className="w-8 h-8" />
+                            <div className="relative z-10 flex flex-col h-full gap-5">
+                                <div className="p-3 w-fit rounded-2xl bg-teal-500/10 text-teal-400 group-hover:scale-110 transition-transform duration-300 ring-1 ring-teal-500/20">
+                                    <Trophy className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold mb-3 text-white group-hover:text-teal-400 transition-colors">Ranked Race</h2>
-                                    <p className="text-muted-foreground leading-relaxed">
-                                        Challenge friends or compete against others in real-time. Synced words, live progress tracking.
+                                    <h2 className="text-xl font-bold mb-2 text-white group-hover:text-teal-400 transition-colors">Ranked Race</h2>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Compete against AI opponents in a ranked ladder. Prove your skill and earn your rank.
                                     </p>
                                 </div>
-                                <div className="mt-auto pt-4 flex items-center text-teal-400 font-medium opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                                    Create or Join Room <Users className="w-4 h-4 ml-2 fill-current" />
+                                <div className="mt-auto pt-4 flex items-center text-teal-400 font-medium opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-sm">
+                                    Find Opponent <Zap className="w-4 h-4 ml-2 fill-current" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Ranked with Friend (Real Multiplayer) Card */}
+                        <div
+                            onClick={() => setSelectedMode('multiplayer')}
+                            className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 transition-all cursor-pointer hover:border-violet-500/50 hover:shadow-[0_0_40px_-10px_rgba(139,92,246,0.1)] hover:-translate-y-1"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                            <div className="relative z-10 flex flex-col h-full gap-5">
+                                <div className="p-3 w-fit rounded-2xl bg-violet-500/10 text-violet-400 group-hover:scale-110 transition-transform duration-300 ring-1 ring-violet-500/20">
+                                    <Swords className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold mb-2 text-white group-hover:text-violet-400 transition-colors">Ranked w/ Friends</h2>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">
+                                        Create a private room or join a friend via code. Race head-to-head in real-time.
+                                    </p>
+                                </div>
+                                <div className="mt-auto pt-4 flex items-center text-violet-400 font-medium opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-sm">
+                                    Create/Join Room <Users className="w-4 h-4 ml-2 fill-current" />
                                 </div>
                             </div>
                         </div>
@@ -129,16 +172,40 @@ const Practice = () => {
                     // Typing Test Component (Centered)
                     <div className="w-full max-w-6xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
                         {/* Removed local toolbar, now using global header/sidebar */}
-                        <TypingTest initialMultiplayer={selectedMode === 'multiplayer'} />
-
-                        {/* Centered Restart / additional controls could go here if not in TypingTest */}
+                        <TypingTest
+                            initialMultiplayer={selectedMode === 'multiplayer'}
+                            aiMode={selectedMode === 'ranked_race'}
+                            initialConfig={rankedConfig || undefined}
+                        />
                     </div>
                 )}
             </main>
 
             {selectedMode === null && <Footer />}
+
+            <LaptopSuggestionModal
+                isOpen={showLaptopSuggestion}
+                onClose={() => setShowLaptopSuggestion(false)}
+            />
+
+            <RankedConfigModal
+                open={isRankedConfigOpen}
+                onOpenChange={setIsRankedConfigOpen}
+                onStart={(config) => {
+                    setRankedConfig(config);
+                    setSelectedMode('ranked_race');
+                }}
+            />
         </div>
     );
 };
 
-export default Practice;
+import DebugErrorBoundary from '@/components/DebugErrorBoundary';
+
+const PracticeWithBoundary = () => (
+    <DebugErrorBoundary>
+        <Practice />
+    </DebugErrorBoundary>
+);
+
+export default PracticeWithBoundary;

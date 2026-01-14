@@ -15,9 +15,11 @@ import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useMultiplayer } from '@/hooks/useMultiplayer';
+import { useAiOpponent } from '@/hooks/useAiOpponent';
 import RaceTrack from './RaceTrack';
 import MultiplayerModal from './MultiplayerModal';
 import MultiplayerResults from './MultiplayerResults';
+import { Loader2 } from 'lucide-react';
 
 import {
     COMMON_WORDS, WORDS_EASY, WORDS_HARD,
@@ -31,13 +33,24 @@ import {
 interface TypingTestProps {
     onComplete?: (stats: { wpm: number; accuracy: number; errorCount: number }) => void;
     initialMultiplayer?: boolean;
+    aiMode?: boolean;
+    initialConfig?: any; // Avoiding deep imports for RoomConfig
 }
 
-const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps) => {
+const TypingTest = ({ onComplete, initialMultiplayer = false, aiMode = false, initialConfig }: TypingTestProps) => {
     const { user } = useAuth();
-    const multiplayer = useMultiplayer(user);
+    // Use AI hook if aiMode is true, otherwise standard multiplayer
+    // Cast to explicit 'any' to bypass strict return type mismatch between hooks for now, 
+    // as we just need the common interface in this component
+    // Fix: Call BOTH hooks unconditionally to verify Rules of Hooks. 
+    // Since neither hook auto-starts side effects without interaction, this is safe and prevents "Rendered fewer hooks" errors.
+    const mpInterface = useMultiplayer(user);
+    const aiInterface = useAiOpponent(user);
+
+    // Select the active interface based on mode
+    const multiplayer: any = aiMode ? aiInterface : mpInterface;
     const [isMultiplayerOpen, setIsMultiplayerOpen] = useState(initialMultiplayer);
-    const [targetText, setTargetText] = useState('');
+    const [targetText, setTargetText] = useState(() => generateWords(100, false, false, 'medium'));
     const [userInput, setUserInput] = useState('');
     const [startTime, setStartTime] = useState<number | null>(null);
     const [timeLeft, setTimeLeft] = useState(30);
@@ -79,13 +92,21 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
                 setIsMultiplayerOpen(true);
             }, 100);
 
-            if (roomCodeParam && !multiplayer.roomCode) {
+            if (roomCodeParam && !multiplayer.roomCode && 'joinRoom' in multiplayer) {
+                // Only join room if standard multiplayer
                 multiplayer.joinRoom(roomCodeParam);
                 // Clean URL
                 window.history.replaceState({}, '', window.location.pathname);
             }
         }
-    }, [initialMultiplayer]);
+
+        // Auto-start AI Matchmaking
+        if (aiMode && 'startMatchmaking' in multiplayer) {
+            // Cast to custom type or just call it safely, ts-ignore for now as intersection type complex
+            // @ts-ignore
+            multiplayer.startMatchmaking();
+        }
+    }, [initialMultiplayer, aiMode]);
 
     // Update Room Config when Host changes settings
     useEffect(() => {
@@ -172,6 +193,57 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
         if (inputRef.current) inputRef.current.focus();
     };
 
+    const handleComplete = useCallback(() => {
+        setIsFinished(true); // Stop input
+        setIsActive(false); // Stop timer/logic
+        const endTime = Date.now();
+        const durationMinutes = (endTime - (startTime || endTime)) / 60000;
+        const wordsTyped = userInput.length / 5;
+        const finalWpm = Math.round(wordsTyped / durationMinutes) || 0;
+
+        // Calculate Accuracy Manually to ensure non-zero
+        let correctChars = 0;
+        for (let i = 0; i < userInput.length; i++) {
+            if (userInput[i] === targetText[i]) correctChars++;
+        }
+        const finalAccuracy = userInput.length > 0 ? Math.round((correctChars / userInput.length) * 100) : 100;
+
+        setWpm(finalWpm);
+        setAccuracy(finalAccuracy); // Update local state
+
+        // Submit to Multiplayer if active
+        if (multiplayer.roomCode && multiplayer.completeRace) {
+            multiplayer.completeRace({
+                wpm: finalWpm,
+                accuracy: finalAccuracy,
+                time: selectedTime,
+                errorCount
+            });
+        }
+
+        if (onComplete) {
+            onComplete({ wpm: finalWpm, accuracy: finalAccuracy, errorCount });
+        }
+    }, [userInput, targetText, startTime, selectedTime, errorCount, multiplayer, onComplete]);
+
+    // Check for completion
+    useEffect(() => {
+        if (!targetText || !userInput || isFinished) return; // Added isFinished check
+
+        if (userInput.length === targetText.length) {
+            handleComplete();
+        } else if (multiplayer.roomCode && multiplayer.gameState === 'racing') {
+            // Update progress in multiplayer
+            // WPM Calculation for progress
+            const timeElapsed = (Date.now() - (startTime || Date.now())) / 1000 / 60;
+            const wordsTyped = userInput.length / 5;
+            const currentWpm = timeElapsed > 0 ? Math.round(wordsTyped / timeElapsed) : 0;
+            const progress = Math.min(100, (userInput.length / targetText.length) * 100);
+
+            multiplayer.updateProgress(progress, currentWpm);
+        }
+    }, [userInput, targetText, multiplayer, startTime, handleComplete, isFinished]);
+
     // Timer logic
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -221,7 +293,27 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
         setIsActive(false);
         setIsFinished(true);
 
-        // Save to Supabase if user is logged in
+        // Calculate final stats for multiplayer submission if time ran out
+        if (multiplayer.roomCode && multiplayer.completeRace) {
+            const wordsTyped = userInput.length / 5;
+            const durationMinutes = selectedTime / 60; // Use selected time as full duration since time ran out
+            const finalWpm = Math.round(wordsTyped / durationMinutes) || 0;
+
+            let correctChars = 0;
+            for (let i = 0; i < userInput.length; i++) {
+                if (userInput[i] === targetText[i]) correctChars++;
+            }
+            const finalAccuracy = userInput.length > 0 ? Math.round((correctChars / userInput.length) * 100) : 100;
+
+            console.log("Time ran out, submitting to multiplayer:", { finalWpm, finalAccuracy });
+            multiplayer.completeRace({
+                wpm: finalWpm,
+                accuracy: finalAccuracy,
+                time: selectedTime,
+                errorCount
+            });
+        }
+
         // Save to Supabase if user is logged in
         console.log("EndTest called. User:", user);
 
@@ -332,6 +424,7 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
 
     // Render text with specific coloring
     const renderText = () => {
+        if (!targetText) return null; // Prevent crash if undefined
         return targetText.split('').map((char, index) => {
             // Colors: Untyped = very muted, Typed Correct = bright, Error = red
             let className = 'text-muted-foreground/40 transition-colors duration-200';
@@ -539,6 +632,9 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
                 </div>
             )}
 
+            {/* Check for completion */}
+            {/* Logic moved to useEffect below to allow handleComplete access */}
+
             {/* Results Modal */}
             {multiplayer.roomCode ? (
                 <MultiplayerResults
@@ -570,7 +666,7 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
                 />
             )}
 
-            {/* Typing Area - 5 Lines Fixed Height (approx 20rem/320px) with overflow-hidden */}
+            {/* Typing Area */}
             <div
                 ref={containerRef}
                 className={cn(
@@ -578,7 +674,7 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
                     isFinished ? "blur-sm opacity-50 grayscale pointer-events-none" : ""
                 )}
             >
-                {/* Text Display */}
+                {/* Text Display - RESTORED */}
                 <div
                     className="relative z-10 break-words pointer-events-none select-none w-full whitespace-pre-wrap tracking-wide"
                     style={{ wordSpacing: '0.1em' }}
@@ -586,19 +682,39 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
                     {renderText()}
                 </div>
 
-                {/* Hidden Input field to capture typing */}
+                {/* Cursor Overlay */}
+                <div
+                    className="absolute"
+                    style={{
+                        left: activeCharRef.current?.offsetLeft ?? 0,
+                        top: activeCharRef.current?.offsetTop ?? 0,
+                        transition: "all 0.1s ease-out"
+                    }}
+                >
+                    {/* Cursor is actually handled inside renderText via a span, but if we need a global one we can add it. 
+                        Looking at renderText (line 403), it adds a cursor span inside the active char. 
+                        So we might just need the text container. Previous code had a separate cursor overlay too in some versions, but let's stick to renderText first. 
+                        Wait, earlier step 271 showed a Cursor Overlay div. Let's add it back if it looks good, but renderText has `isCurrent` logic.
+                        Actually, renderText logic at line 421 adds a blinking cursor. 
+                        So just restoring renderText() container should be enough.
+                     */}
+                </div>
+
+                {/* Input Field - Always focusable when not finished, but logic handles actual 'typing' */}
                 <input
                     ref={inputRef}
                     type="text"
-                    className="absolute opacity-0 inset-0 cursor-default"
-                    value={userInput}
+                    className="absolute opacity-0 w-full h-full z-20 cursor-text"
                     onChange={handleInputChange}
-                    autoFocus
+                    value={userInput}
+                    onPaste={(e) => e.preventDefault()}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
                     spellCheck="false"
+                    // Fix: Ensure it's enabled if we are in multiplayer and racing, OR if we are solo and active/inactive
                     disabled={isFinished || (!!multiplayer.roomCode && multiplayer.gameState !== 'racing')}
+                    autoFocus
                 />
             </div>
 
@@ -622,6 +738,23 @@ const TypingTest = ({ onComplete, initialMultiplayer = false }: TypingTestProps)
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="text-[12rem] font-black italic text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600 animate-pulse tracking-tighter drop-shadow-2xl">
                         {countdown}
+                    </div>
+                </div>
+            )}
+
+            {/* AI Searching Overlay */}
+            {/* @ts-ignore - isSearching property specific to AI hook */}
+            {multiplayer.isSearching && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="relative">
+                            <div className="w-16 h-16 border-4 border-teal-500/30 border-t-teal-500 rounded-full animate-spin"></div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="w-2 h-2 bg-teal-400 rounded-full animate-ping"></span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-white tracking-widest uppercase animate-pulse">Finding Opponent...</h2>
+                        <p className="text-neutral-500 text-sm">Searching global ranked queue</p>
                     </div>
                 </div>
             )}

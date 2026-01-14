@@ -16,6 +16,8 @@ import {
 
 import ComingSoonModal from "@/components/modals/ComingSoonModal";
 
+import FutureInnovationModal from "@/components/modals/FutureInnovationModal";
+
 interface NavbarProps {
   forceOpaque?: boolean;
 }
@@ -24,6 +26,7 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isComingSoonOpen, setIsComingSoonOpen] = useState(false);
+  const [isFutureModalOpen, setIsFutureModalOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isLoginModalOpen, openLoginModal, closeLoginModal } = useAuth();
 
@@ -37,23 +40,27 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
 
   const navLinks = [
     { href: '/', label: 'Home' },
-
     { href: '/practice', label: 'Typing Test' },
     { href: '/voice-practice', label: 'Voice Practice' },
     { href: '/verbal-practice', label: 'Verbal Practice' },
-    { href: '/#benefits', label: 'Benefits' },
+    { href: '#future', label: 'Future Innovation', isFuture: true },
   ];
 
-  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, link: { href: string; isComingSoon?: boolean }) => {
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, link: { href: string; isComingSoon?: boolean; isFuture?: boolean }) => {
     if (link.isComingSoon) {
       e.preventDefault();
       setIsComingSoonOpen(true);
+      setIsMobileMenuOpen(false);
+    } else if (link.isFuture) {
+      e.preventDefault();
+      setIsFutureModalOpen(true);
       setIsMobileMenuOpen(false);
     } else if (link.href === '/practice' && !isAuthenticated) {
       e.preventDefault();
       openLoginModal();
       setIsMobileMenuOpen(false);
     } else {
+      // Normal link behavior
       setIsMobileMenuOpen(false);
     }
   };
@@ -71,15 +78,7 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
       <nav className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 group">
-          <div className="relative">
-            <Keyboard className="w-8 h-8 text-primary transition-transform group-hover:scale-110" />
-            <Mic className="w-4 h-4 text-accent absolute -bottom-1 -right-1" />
-          </div>
-          <span className="text-xl font-bold">
-            <span className="text-foreground">Type</span>
-            <span className="gradient-text">Speak</span>
-            <span className="text-muted-foreground font-medium"> Pro</span>
-          </span>
+          <img src="/logo.jpg" alt="TypeSpeak Pro" className="h-14 w-auto object-contain transition-transform group-hover:scale-105 mix-blend-screen" />
         </a>
 
         {/* Desktop Navigation */}
@@ -88,8 +87,8 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
             <a
               key={link.href}
               href={link.href}
-              className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-              onClick={(e) => (link as any).isComingSoon ? handleNavClick(e, link) : undefined}
+              className={`transition-colors text-sm font-medium ${link.isFuture ? 'text-purple-400 hover:text-purple-300 font-bold glow-text' : 'text-muted-foreground hover:text-foreground'}`}
+              onClick={(e) => handleNavClick(e, link)}
             >
               {link.label}
             </a>
@@ -158,7 +157,7 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-muted-foreground hover:text-foreground transition-colors py-2 text-sm font-medium"
+                className={`transition-colors py-2 text-sm font-medium ${link.isFuture ? 'text-purple-400 font-bold' : 'text-muted-foreground hover:text-foreground'}`}
                 onClick={(e) => handleNavClick(e, link)}
               >
                 {link.label}
@@ -187,6 +186,7 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
       )}
       <LoginModal isOpen={isLoginModalOpen} onClose={closeLoginModal} />
       <ComingSoonModal isOpen={isComingSoonOpen} onClose={() => setIsComingSoonOpen(false)} />
+      <FutureInnovationModal isOpen={isFutureModalOpen} onClose={() => setIsFutureModalOpen(false)} />
     </header>
   );
 };

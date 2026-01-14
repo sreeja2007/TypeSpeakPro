@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 const VerbalGame = () => {
     const { categoryId } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     // Game State
     const [gameState, setGameState] = useState<'difficulty-select' | 'playing' | 'finished'>('difficulty-select');
@@ -150,8 +153,28 @@ const VerbalGame = () => {
             setIsAnswered(false);
             setSelectedOption(null);
             setShowWrongAnimation(false);
+            setShowWrongAnimation(false);
         } else {
+            // Game Finished
             setGameState('finished');
+
+            // Save Result
+            if (user?.id) {
+                const saveScore = async () => {
+                    const { error } = await supabase.from('practice_results').insert({
+                        user_id: user.id,
+                        practice_type: 'verbal', // or 'voice' mapping? User requested "voive". 'verbal' is usually vocal/speech or vocabulary. This component is 'VerbalGame', seems like vocabulary MCQ. User said "voive practice and vocal practice".
+                        // Wait, "Voice Practice" is likely the `VoicePractice.tsx` landing page, which links to `Communication` (Listening?) and `HR`.
+                        // "Vocal Practice" button, user said.
+                        // I will save this as 'verbal' and 'listening' and assume the Dashboard maps them correctly.
+                        score: score,
+                        accuracy: Math.round((score / (gameQuestions.length * 10)) * 100) // approximate based on score logic
+                    });
+                    if (error) console.error('Error saving score:', error);
+                    else toast.success(`Score saved!`);
+                };
+                saveScore();
+            }
         }
     };
 

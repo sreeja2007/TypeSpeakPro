@@ -9,10 +9,13 @@ import { ArrowLeft, Play, Pause, CheckCircle, XCircle, Ear, Globe, ChevronDown, 
 import { toast } from 'sonner';
 import { LISTENING_SCENARIOS, ListeningScenario } from '@/data/listeningScenarios';
 import confetti from 'canvas-confetti';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 const ListeningPractice = () => {
     const navigate = useNavigate();
     const { speak, isSpeaking, cancelSpeech } = useSpeech();
+    const { user } = useAuth();
 
     // Filter State
     const [selectedLevel, setSelectedLevel] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
@@ -77,6 +80,22 @@ const ListeningPractice = () => {
             toast.success("Perfect Score! 🎉");
         } else {
             toast.error("Some answers are incorrect. Check the red boxes!");
+        }
+
+        // Save Result
+        if (user?.id) {
+            const saveScore = async () => {
+                const points = correctCount * 10; // 10 points per correct answer
+                const { error } = await supabase.from('practice_results').insert({
+                    user_id: user.id,
+                    practice_type: 'listening', // or 'vocal' as per user request mapping? User said "voive practice and vocal practice". Let's stick to internal names 'listening' and map it later.
+                    score: points,
+                    accuracy: Math.round((correctCount / scenario.questions.length) * 100)
+                });
+                if (error) console.error('Error saving score:', error);
+                else toast.success(`Saved ${points} points!`);
+            };
+            saveScore();
         }
 
         setShowResults(true);

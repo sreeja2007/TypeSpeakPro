@@ -98,7 +98,8 @@ const MultiplayerResults = ({ open, onOpenChange, multiplayer, onRestart, result
                                     <div className="flex items-center gap-4 text-right">
                                         <div className="flex flex-col items-end">
                                             <span className="text-sm font-bold text-foreground">{Math.round(player.wpm)} WPM</span>
-                                            <span className="text-[10px] text-muted-foreground">{player.accuracy || 100}% acc</span>
+                                            {/* Fix: Prioritize player.accuracy, fallback to 100 only if undefined, but if 0 it should show 0 if they typed poorly, though usually >0 */}
+                                            <span className="text-[10px] text-muted-foreground">{player.accuracy !== undefined ? player.accuracy : 0}% acc</span>
                                         </div>
                                         {player.progress < 100 && (
                                             <div className="text-xs text-muted-foreground/50 italic">DNF</div>
@@ -109,12 +110,39 @@ const MultiplayerResults = ({ open, onOpenChange, multiplayer, onRestart, result
                         })}
                     </div>
 
+                    {/* Performance Comparison Chart */}
+                    <div className="space-y-3 pt-2">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Performance Analysis</h3>
+                        <div className="bg-black/20 rounded-lg p-4 space-y-4">
+                            {sortedPlayers.map(p => {
+                                const isMe = p.id === multiplayer.playerId;
+                                const maxWpm = Math.max(...sortedPlayers.map(pl => pl.wpm), 80); // Baseline 80
+                                const width = Math.min(100, (p.wpm / maxWpm) * 100);
+
+                                return (
+                                    <div key={p.id} className="space-y-1">
+                                        <div className="flex justify-between text-xs">
+                                            <span className={cn(isMe ? "text-teal-400 font-bold" : "text-muted-foreground")}>{p.name}</span>
+                                            <span className="text-muted-foreground">{p.wpm} wpm</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className={cn("h-full rounded-full transition-all duration-1000", isMe ? "bg-teal-500" : "bg-white/20")}
+                                                style={{ width: `${width}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
                     <div className="flex gap-3">
-                        <Button variant="outline" className="flex-1" onClick={() => window.print()}>
+                        <Button variant="outline" className="flex-1 border-teal-500/20 hover:bg-teal-500/10 hover:text-teal-400" onClick={() => window.print()}>
                             Download Report
                         </Button>
-                        <Button className="flex-1" onClick={onRestart}>
-                            Return to Lobby
+                        <Button className="flex-1 bg-teal-500 hover:bg-teal-600 text-black font-bold" onClick={onRestart}>
+                            New Race
                         </Button>
                     </div>
                 </div>
