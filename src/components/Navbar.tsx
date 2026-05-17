@@ -151,27 +151,44 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden glass-strong mt-2 mx-4 rounded-xl p-4 animate-fade-in">
+        <div className="lg:hidden glass-strong bg-card/95 mt-2 mx-4 rounded-xl p-4 animate-fade-in">
           <div className="flex flex-col gap-3">
+            {isAuthenticated && (
+              <>
+                <div className="flex flex-col space-y-1 px-1">
+                  <p className="text-sm font-medium leading-none text-foreground">{user?.name}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+                </div>
+                <hr className="border-border my-2" />
+              </>
+            )}
             {navLinks.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className={`transition-colors py-2 text-sm font-medium ${link.isFuture ? 'text-purple-400 font-bold' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`transition-colors py-2 text-sm font-medium ${link.isFuture ? 'text-purple-400 font-bold' : 'text-foreground hover:text-primary'}`}
                 onClick={(e) => handleNavClick(e, link)}
               >
                 {link.label}
               </a>
             ))}
             <hr className="border-border my-2" />
-            <div className="pt-2 flex justify-center">
+            <div className="pt-2 flex flex-col gap-3">
               {isAuthenticated ? (
-                <Button className="w-full" variant="destructive" onClick={() => {
-                  handleLogout();
-                  setIsMobileMenuOpen(false);
-                }}>
-                  Log out
-                </Button>
+                <>
+                  <Button className="w-full" variant="outline" onClick={() => {
+                    navigate("/dashboard");
+                    setIsMobileMenuOpen(false);
+                  }}>
+                    My Dashboard
+                  </Button>
+                  <Button className="w-full" variant="destructive" onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}>
+                    Log out
+                  </Button>
+                </>
               ) : (
                 <Button className="w-full" onClick={() => {
                   setIsMobileMenuOpen(false);
