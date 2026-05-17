@@ -122,7 +122,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="mt-16 pt-8 border-t border-border flex flex-col items-center justify-center gap-4 text-center">
           <p className="text-muted-foreground text-sm">
-            2025 TypeSpeak Pro. All rights reserved.
+            2026 TypeSpeak Pro. All rights reserved.
           </p>
           <p className="text-muted-foreground text-sm">
             Made with ❤️ Sufal
