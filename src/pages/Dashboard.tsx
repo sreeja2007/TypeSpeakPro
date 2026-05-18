@@ -142,7 +142,7 @@ const Dashboard = () => {
     return (
         <div className="min-h-screen bg-neutral-950 text-white font-sans fade-in selection:bg-teal-500/30">
             <Navbar />
-            <div className="max-w-7xl mx-auto space-y-8 p-6 md:p-12 pt-24">
+            <div className="max-w-7xl mx-auto space-y-8 p-6 md:p-12 pt-24 mt-16">
 
                 {/* Profile Hero Section */}
                 <div className="relative overflow-hidden rounded-3xl bg-neutral-900 border border-white/10 p-8 md:p-12 shadow-2xl">
