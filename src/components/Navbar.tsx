@@ -81,9 +81,11 @@ const { theme, toggleTheme } = useTheme();
       <nav className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 group">
-          <span className="text-xl font-black text-foreground transition-colors">
-            TypeSpeak<span className="text-teal-400">Pro</span>
-          </span>
+          <img
+            src="/logo.jpg"
+            alt="TypeSpeakPro"
+            className="h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+          />
         </a>
 
         {/* Desktop Navigation */}
