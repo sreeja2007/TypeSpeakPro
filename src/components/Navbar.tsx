@@ -192,6 +192,22 @@ const { theme, toggleTheme } = useTheme();
             ))}
             <hr className="border-border my-2" />
             <div className="pt-2 flex flex-col gap-3">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center gap-2 w-full rounded-lg border border-border bg-background/50 px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent"
+              >
+                {theme === "dark" ? (
+                  <>
+                    <Sun className="h-4 w-4 text-yellow-400" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="h-4 w-4 text-purple-400" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
+              </button>
               {isAuthenticated ? (
                 <>
                   <Button className="w-full" variant="outline" onClick={() => {
