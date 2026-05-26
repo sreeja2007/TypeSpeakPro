@@ -64,46 +64,19 @@ const Leaderboard = () => {
     };
 
     const fetchLeaderboard = useCallback(async () => {
-            // Fetch top results ordered by WPM desc
-            const { data, error } = await supabase
-                .from('test_results')
-                .select(`
-                    user_id,
-                    wpm,
-                    accuracy,
-                    created_at,
-                    users (
-                        name,
-                        picture,
-                        country
-                    )
-                `)
-                .order('wpm', { ascending: false })
-                .limit(100);
-
-            if (error) throw error;
-
-            // Client-side deduplication
-            const uniqueEntries: { [key: string]: any } = {};
-            data?.forEach((entry: any) => {
-                if (!uniqueEntries[entry.user_id]) {
-                    uniqueEntries[entry.user_id] = entry;
-                } else {
-                    if (entry.wpm > uniqueEntries[entry.user_id].wpm) {
-                        uniqueEntries[entry.user_id] = entry;
-                    }
-                }
-            });
-
-            const sorted = Object.values(uniqueEntries)
-                .sort((a: any, b: any) => b.wpm - a.wpm)
-                .slice(0, 50)
-                .map((entry: any, index: number) => ({
-                    ...entry,
-                    rank: index + 1
-                }));
-
-            setEntries(sorted);
+        const { data, error } = await supabase
+            .rpc('get_leaderboard', { limit_count: 50 });
+        if (error) throw error;
+        const sorted = (data ?? []).map((entry: any, index: number) => ({
+            ...entry,
+            rank: index + 1,
+            users: {
+                name: entry.name,
+                picture: entry.picture,
+                country: entry.country,
+            },
+        }));
+        setEntries(sorted);
     }, []);
 
     const leaderboardAction = useRetryableAction(fetchLeaderboard, {
