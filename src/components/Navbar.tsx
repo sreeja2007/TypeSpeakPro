@@ -31,7 +31,7 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
   const [isFutureModalOpen, setIsFutureModalOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isLoginModalOpen, openLoginModal, closeLoginModal } = useAuth();
-const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,7 +72,7 @@ const { theme, toggleTheme } = useTheme();
     logout();
     navigate("/");
   };
-
+  const currentPath = window.location.pathname;
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || forceOpaque ? 'glass-strong py-3' : 'bg-transparent py-5'
@@ -94,7 +94,10 @@ const { theme, toggleTheme } = useTheme();
             <a
               key={link.href}
               href={link.href}
-              className={`transition-colors text-sm font-medium ${link.isFuture ? 'text-purple-400 hover:text-purple-300 font-bold glow-text' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`transition-colors text-sm font-medium ${currentPath === link.href
+                ? "text-cyan-400 border-b-2 border-cyan-400 pb-1"
+                : "text-white/80 hover:text-cyan-400"
+                }`}
               onClick={(e) => handleNavClick(e, link)}
             >
               {link.label}
