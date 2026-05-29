@@ -20,12 +20,9 @@ const BackToTopButton = () => {
   }, []);
 
   const handleClick = () => {
-    const prefersReducedMotion =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-
     window.scrollTo({
       top: 0,
-      behavior: prefersReducedMotion ? "auto" : "smooth",
+      behavior: "smooth",
     });
   };
 
@@ -36,13 +33,13 @@ const BackToTopButton = () => {
   return (
     <Button
       type="button"
-      variant="accent"
+      variant="ghost"
+      size="icon"
       onClick={handleClick}
       aria-label="Back to top"
-      className="fixed bottom-6 right-6 z-50 rounded-full shadow-[0_0_24px_hsl(280_100%_65%/0.45)] transition-all duration-300 sm:bottom-8 sm:right-8"
+      className="fixed bottom-5 right-5 z-50 h-12 w-12 rounded-full border border-primary/30 bg-card/75 text-primary shadow-[0_12px_32px_hsl(222_47%_4%/0.28),0_0_24px_hsl(186_100%_50%/0.24),0_0_32px_hsl(280_100%_65%/0.18)] backdrop-blur-xl animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-300 hover:-translate-y-1 hover:border-primary/50 hover:bg-card/90 hover:text-primary hover:shadow-[0_16px_42px_hsl(222_47%_4%/0.32),0_0_34px_hsl(186_100%_50%/0.34),0_0_44px_hsl(280_100%_65%/0.24)] focus-visible:ring-primary sm:bottom-8 sm:right-8 sm:h-14 sm:w-14"
     >
-      <ArrowUp className="h-4 w-4" />
-      <span className="hidden sm:inline">Back to top</span>
+      <ArrowUp className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
     </Button>
   );
 };

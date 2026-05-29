@@ -29,6 +29,8 @@ describe("BackToTopButton", () => {
 
     const button = screen.getByRole("button", { name: /back to top/i });
 
+    expect(screen.queryByText(/back to top/i)).not.toBeInTheDocument();
+
     fireEvent.click(button);
 
     expect(scrollToSpy).toHaveBeenCalledWith({
