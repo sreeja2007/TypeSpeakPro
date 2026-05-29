@@ -14,8 +14,11 @@ interface UseVoiceRecorderReturn {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   audioBlob: Blob | null;
-  error: string | null;
+  error: AsyncErrorMetadata | null;
   hasPermission: boolean | null;
+  status: AsyncStatus;
+  retry: () => Promise<void>;
+  clearError: () => void;
 }
 
 // Extend global window object for webkitSpeechRecognition
@@ -60,7 +63,8 @@ export const useVoiceRecorder = ({
   const [isPaused, setIsPaused] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(maxDuration);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AsyncErrorMetadata | null>(null);
+  const [status, setStatus] = useState<AsyncStatus>('idle');
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [transcript, setTranscript] = useState(''); // Add transcript state
   const transcriptRef = useRef(''); // Ref to hold latest transcript without causing re-renders in closure
@@ -76,6 +80,7 @@ export const useVoiceRecorder = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const isStartingRef = useRef(false);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -107,6 +112,7 @@ export const useVoiceRecorder = ({
 
     setIsRecording(false);
     setIsPaused(false);
+    setStatus('idle');
   }, [clearTimer]);
 
   // Cleanup on unmount — stop all media tracks, timers, and recognition
@@ -144,7 +150,9 @@ export const useVoiceRecorder = ({
     }
 
     try {
+      isStartingRef.current = true;
       setError(null);
+      setStatus('pending');
       setAudioBlob(null);
       setTranscript(''); // Reset transcript
       transcriptRef.current = '';
@@ -162,6 +170,19 @@ export const useVoiceRecorder = ({
 
       setHasPermission(true);
       streamRef.current = stream;
+      stream.getTracks().forEach(track => {
+        track.onended = () => {
+          if (isRecording) {
+            setError(createAsyncError(
+              'Microphone access ended',
+              'The microphone permission or device connection was interrupted.',
+              { recoveryHint: 'Reconnect or allow the microphone, then retry.' }
+            ));
+            setStatus('retryable-error');
+            stopRecording();
+          }
+        };
+      });
 
       // 2. Setup MediaRecorder
       const mediaRecorder = new MediaRecorder(stream, {
@@ -179,6 +200,7 @@ export const useVoiceRecorder = ({
       mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setAudioBlob(blob);
+        setStatus('success');
         // Use savedCallback to ensure we access the latest closure context (including fresh state from parent)
         if (savedCallback.current) {
           savedCallback.current(blob, transcriptRef.current);
@@ -224,6 +246,7 @@ export const useVoiceRecorder = ({
       }
 
       setIsRecording(true);
+      setStatus('recording');
 
       // 4. Start Timer
       let remaining = maxDuration;
@@ -253,6 +276,9 @@ export const useVoiceRecorder = ({
     audioBlob,
     error,
     hasPermission,
+    status,
+    retry: startRecording,
+    clearError,
     transcript, // Return transcript
   };
 };

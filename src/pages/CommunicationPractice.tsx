@@ -31,7 +31,7 @@ const CommunicationPractice = () => {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-teal-500/30 flex flex-col">
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-teal-500/30 flex flex-col">
             <Navbar forceOpaque={true} />
 
             <main className="flex-1 container mx-auto px-4 pt-32 pb-20">
@@ -43,7 +43,7 @@ const CommunicationPractice = () => {
                             className={`h-1 flex-1 max-w-[50px] rounded-full transition-colors duration-300 
                         ${(step === 'config' && s === 1) || (step === 'session' && s <= 2) || (step === 'feedback' && s <= 3)
                                     ? 'bg-teal-500'
-                                    : 'bg-white/10'
+                                    : 'bg-muted'
                                 }`}
                         />
                     ))}

@@ -31,7 +31,7 @@ const LevelCard: React.FC<LevelCardProps> = ({ level, isSelected, onSelect }) =>
         'border backdrop-blur-sm',
         isSelected
           ? 'border-2 border-green-500 bg-green-500/10 shadow-lg shadow-green-500/20 active-scale'
-          : 'border-white/10 bg-white/5 hover:border-green-500/50 hover:bg-white/10 hover:shadow-md hover:-translate-y-1'
+          : 'border-border bg-muted hover:border-green-500/50 hover:bg-muted hover:shadow-md hover:-translate-y-1'
       )}
     >
       {/* Dynamic Background Gradient */}
@@ -46,7 +46,7 @@ const LevelCard: React.FC<LevelCardProps> = ({ level, isSelected, onSelect }) =>
           'absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center transition-all duration-300 z-10',
           isSelected
             ? 'bg-green-500 scale-100'
-            : 'bg-white/10 scale-90 opacity-0 group-hover:opacity-100'
+            : 'bg-muted scale-90 opacity-0 group-hover:opacity-100'
         )}
       >
         <Check className="w-4 h-4 text-white" />
@@ -56,7 +56,7 @@ const LevelCard: React.FC<LevelCardProps> = ({ level, isSelected, onSelect }) =>
         {/* Icon Container */}
         <div className={cn(
           "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110",
-          "bg-white/5 border border-white/10"
+          "bg-muted border border-border"
         )}>
           {getIcon()}
         </div>

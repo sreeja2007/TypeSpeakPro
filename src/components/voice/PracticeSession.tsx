@@ -99,10 +99,10 @@ const PracticeSession = ({ config, onComplete, onCancel }: PracticeSessionProps)
     return (
         <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex gap-4 mb-4">
-                <Button variant="ghost" onClick={onCancel} className="text-muted-foreground hover:text-white pl-0">
+                <Button variant="ghost" onClick={onCancel} className="text-muted-foreground hover:text-foreground pl-0">
                     <ArrowLeft className="w-4 h-4 mr-2" /> Back to Setup
                 </Button>
-                <Button variant="ghost" onClick={() => navigate('/')} className="text-muted-foreground hover:text-white pl-0">
+                <Button variant="ghost" onClick={() => navigate('/')} className="text-muted-foreground hover:text-foreground pl-0">
                     <Home className="w-4 h-4 mr-2" /> Home
                 </Button>
             </div>
@@ -110,23 +110,23 @@ const PracticeSession = ({ config, onComplete, onCancel }: PracticeSessionProps)
             <div className="flex flex-col md:flex-row gap-6">
                 {/* Main Content */}
                 <div className="flex-1 space-y-6">
-                    <Card className="bg-neutral-900/50 border-white/5 backdrop-blur-sm min-h-[400px] flex flex-col">
+                    <Card className="bg-card/50 border-border backdrop-blur-sm min-h-[400px] flex flex-col">
                         <CardContent className="flex-1 p-6 flex flex-col">
                             {/* Prompt Header */}
                             <div className="mb-6 p-4 rounded-lg bg-teal-500/10 border border-teal-500/20">
                                 <h3 className="text-teal-400 text-sm font-semibold uppercase tracking-wider mb-2">Topic</h3>
-                                <p className="text-xl text-white font-medium italic">"{prompt}"</p>
+                                <p className="text-xl text-foreground font-medium italic">"{prompt}"</p>
                             </div>
 
                             {/* Transcript Area */}
-                            <div className="flex-1 rounded-xl bg-black/40 border border-white/5 p-6 mb-6 overflow-y-auto text-lg leading-relaxed relative">
+                            <div className="flex-1 rounded-xl bg-muted border border-border p-6 mb-6 overflow-y-auto text-lg leading-relaxed relative">
                                 {transcript ? (
                                     <>
-                                        <span className="text-white">{transcript}</span>
-                                        <span className="text-white/50">{interimTranscript}</span>
+                                        <span className="text-foreground">{transcript}</span>
+                                        <span className="text-foreground/50">{interimTranscript}</span>
                                     </>
                                 ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center text-neutral-600">
+                                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                                         <p>Press the microphone and start speaking...</p>
                                     </div>
                                 )}
@@ -152,7 +152,7 @@ const PracticeSession = ({ config, onComplete, onCancel }: PracticeSessionProps)
                                     <Button
                                         size="icon"
                                         variant="outline"
-                                        className="h-12 w-12 rounded-full border-white/10 hover:bg-white/10"
+                                        className="h-12 w-12 rounded-full border-border hover:bg-muted"
                                         onClick={handleStop}
                                     >
                                         <StopCircle className="w-6 h-6 text-red-400" />
@@ -165,19 +165,19 @@ const PracticeSession = ({ config, onComplete, onCancel }: PracticeSessionProps)
 
                 {/* Sidebar Info */}
                 <div className="w-full md:w-80 space-y-6">
-                    <Card className="bg-neutral-900/50 border-white/5">
+                    <Card className="bg-card/50 border-border">
                         <CardContent className="p-6 text-center">
                             <h4 className="text-muted-foreground text-sm font-medium mb-2">Time Remaining</h4>
-                            <div className={`text-5xl font-mono font-bold ${timeLeft < 10 ? 'text-red-400' : 'text-white'}`}>
+                            <div className={`text-5xl font-mono font-bold ${timeLeft < 10 ? 'text-red-400' : 'text-foreground'}`}>
                                 00:{timeLeft.toString().padStart(2, '0')}
                             </div>
                         </CardContent>
                     </Card>
 
-                    <Card className="bg-neutral-900/50 border-white/5">
+                    <Card className="bg-card/50 border-border">
                         <CardContent className="p-6 space-y-4">
-                            <h4 className="text-white font-medium border-b border-white/5 pb-2">Guidelines</h4>
-                            <ul className="space-y-3 text-sm text-neutral-400">
+                            <h4 className="text-foreground font-medium border-b border-border pb-2">Guidelines</h4>
+                            <ul className="space-y-3 text-sm text-muted-foreground">
                                 <li className="flex gap-2">
                                     <span className="text-teal-400">•</span>
                                     Speak clearly at a moderate pace.

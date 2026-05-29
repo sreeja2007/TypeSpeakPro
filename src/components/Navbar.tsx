@@ -31,7 +31,7 @@ const Navbar = ({ forceOpaque = false }: NavbarProps) => {
   const [isFutureModalOpen, setIsFutureModalOpen] = useState(false);
   const navigate = useNavigate();
   const { user, isAuthenticated, logout, isLoginModalOpen, openLoginModal, closeLoginModal } = useAuth();
-const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -72,7 +72,7 @@ const { theme, toggleTheme } = useTheme();
     logout();
     navigate("/");
   };
-
+  const currentPath = window.location.pathname;
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || forceOpaque ? 'glass-strong py-3' : 'bg-transparent py-5'
@@ -81,8 +81,11 @@ const { theme, toggleTheme } = useTheme();
       <nav className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2 group">
-           <img src="/logo.jpg" alt="TypeSpeak Pro" className="h-14 w-auto object-contain transition-transform group-hover:scale-105 mix-blend-screen hidden dark:block" />
-           <span className="text-xl font-black text-foreground dark:hidden">TypeSpeak<span className="text-teal-400">Pro</span></span>
+          <img
+            src="/logo.jpg"
+            alt="TypeSpeakPro"
+            className="h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+          />
         </a>
 
         {/* Desktop Navigation */}
@@ -91,7 +94,10 @@ const { theme, toggleTheme } = useTheme();
             <a
               key={link.href}
               href={link.href}
-              className={`transition-colors text-sm font-medium ${link.isFuture ? 'text-purple-400 hover:text-purple-300 font-bold glow-text' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`transition-colors text-sm font-medium ${currentPath === link.href
+                ? "text-cyan-400 border-b-2 border-cyan-400 pb-1"
+                : "text-white/80 hover:text-cyan-400"
+                }`}
               onClick={(e) => handleNavClick(e, link)}
             >
               {link.label}
@@ -135,11 +141,11 @@ const { theme, toggleTheme } = useTheme();
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer hover:bg-white/5 focus:bg-white/5 transition-colors">
+                <DropdownMenuItem onClick={() => navigate("/dashboard")} className="cursor-pointer hover:bg-muted focus:bg-muted hover:text-foreground focus:text-foreground transition-colors">
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile Dashboard</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-400 hover:text-red-300 focus:text-red-300 hover:bg-red-500/10 focus:bg-red-500/10 transition-colors">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive hover:text-destructive focus:text-destructive hover:bg-destructive/10 focus:bg-destructive/10 transition-colors">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
@@ -189,6 +195,22 @@ const { theme, toggleTheme } = useTheme();
             ))}
             <hr className="border-border my-2" />
             <div className="pt-2 flex flex-col gap-3">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-center gap-2 w-full rounded-lg border border-border bg-background/50 px-4 py-2 text-sm font-medium text-foreground transition-all hover:bg-accent"
+              >
+                {theme === "dark" ? (
+                  <>
+                    <Sun className="h-4 w-4 text-yellow-400" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="h-4 w-4 text-purple-400" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
+              </button>
               {isAuthenticated ? (
                 <>
                   <Button className="w-full" variant="outline" onClick={() => {

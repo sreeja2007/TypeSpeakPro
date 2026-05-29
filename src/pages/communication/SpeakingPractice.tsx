@@ -8,6 +8,7 @@ import SetupScreen from './speaking/SetupScreen';
 import MissionInterface from './speaking/MissionInterface';
 import { UserProfile, ZONES } from '@/data/speakingGameData';
 import { Card, CardContent } from '@/components/ui/card';
+import { LoadingState } from '@/components/async';
 
 type GamePhase = 'LOADING' | 'SETUP' | 'MAP' | 'MISSION' | 'FEEDBACK';
 
@@ -49,7 +50,7 @@ const SpeakingPractice = () => {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-teal-500/30 flex flex-col">
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-teal-500/30 flex flex-col">
             <Navbar forceOpaque={true} />
 
             <main className="flex-1 container mx-auto px-4 pt-24 pb-12 flex flex-col relative">
@@ -57,7 +58,7 @@ const SpeakingPractice = () => {
                 <div className="absolute top-24 left-4 z-10 flex gap-4">
                     <Button
                         variant="ghost"
-                        className="hover:text-teal-400 text-neutral-400 pl-0"
+                        className="hover:text-teal-400 text-muted-foreground pl-0"
                         onClick={() => {
                             if (phase === 'MISSION') setPhase('MAP');
                             else navigate('/voice-practice/communication');
@@ -68,7 +69,7 @@ const SpeakingPractice = () => {
                     </Button>
                     <Button
                         variant="ghost"
-                        className="hover:text-teal-400 text-neutral-400 pl-0"
+                        className="hover:text-teal-400 text-muted-foreground pl-0"
                         onClick={() => navigate('/')}
                     >
                         <Home className="w-4 h-4 mr-2" />
@@ -79,7 +80,7 @@ const SpeakingPractice = () => {
                 {/* Content Area */}
                 <div className="flex-1 flex items-center justify-center pt-12">
                     {phase === 'LOADING' && (
-                        <div className="animate-pulse text-teal-400">Loading World...</div>
+                        <LoadingState title="Loading world" description="Preparing your speaking missions." />
                     )}
 
                     {phase === 'SETUP' && (
@@ -91,10 +92,10 @@ const SpeakingPractice = () => {
                             <div className="flex justify-between items-end mb-12">
                                 <div>
                                     <h1 className="text-4xl font-bold mb-2">The World Map 🌍</h1>
-                                    <p className="text-neutral-400">Select a zone to start your mission, {userProfile.name}.</p>
+                                    <p className="text-muted-foreground">Select a zone to start your mission, {userProfile.name}.</p>
                                 </div>
-                                <div className="text-right bg-neutral-900 border border-white/10 px-6 py-3 rounded-2xl">
-                                    <div className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Total XP</div>
+                                <div className="text-right bg-card border border-border px-6 py-3 rounded-2xl">
+                                    <div className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Total XP</div>
                                     <div className="text-2xl font-bold text-yellow-500 flex items-center gap-2 justify-end">
                                         {userProfile.xp} <span className="text-sm">✨</span>
                                     </div>
@@ -108,10 +109,13 @@ const SpeakingPractice = () => {
                                         <Card
                                             key={zone.id}
                                             onClick={() => handleEnterZone(zone.id)}
+                                            onKeyDown={(event) => { if ((event.key === 'Enter' || event.key === ' ') && isUnlocked) handleEnterZone(zone.id); }}
+                                            role={isUnlocked ? 'button' : undefined}
+                                            tabIndex={isUnlocked ? 0 : -1}
                                             className={`
-                                                relative overflow-hidden transition-all duration-300 border-white/5
+                                                relative overflow-hidden transition-all duration-300 border-border
                                                 ${isUnlocked
-                                                    ? 'bg-neutral-900/50 hover:bg-neutral-800 cursor-pointer hover:border-teal-500/50 hover:scale-[1.02] shadow-2xl'
+                                                    ? 'bg-card/50 hover:bg-muted cursor-pointer hover:border-teal-500/50 hover:scale-[1.02] shadow-2xl'
                                                     : 'bg-black/40 opacity-50 cursor-not-allowed grayscale'}
                                             `}
                                         >
@@ -121,17 +125,17 @@ const SpeakingPractice = () => {
                                                 </div>
 
                                                 <div>
-                                                    <h3 className="text-xl font-bold mb-2 text-white">{zone.name}</h3>
-                                                    <p className="text-sm text-neutral-500 line-clamp-2">{zone.description}</p>
+                                                    <h3 className="text-xl font-bold mb-2 text-foreground">{zone.name}</h3>
+                                                    <p className="text-sm text-muted-foreground line-clamp-2">{zone.description}</p>
                                                 </div>
 
-                                                <div className="w-full pt-4 mt-4 border-t border-white/5">
+                                                <div className="w-full pt-4 mt-4 border-t border-border">
                                                     {isUnlocked ? (
                                                         <span className="inline-flex items-center text-xs font-bold text-teal-400 bg-teal-500/10 px-3 py-1 rounded-full">
                                                             OPEN ZONE
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center text-xs font-bold text-neutral-500 bg-white/5 px-3 py-1 rounded-full">
+                                                        <span className="inline-flex items-center text-xs font-bold text-muted-foreground bg-muted px-3 py-1 rounded-full">
                                                             LOCKED 🔒
                                                         </span>
                                                     )}

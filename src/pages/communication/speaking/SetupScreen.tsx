@@ -46,24 +46,24 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-purple-400 mb-2">
                     Start Your Journey
                 </h1>
-                <p className="text-neutral-400">Step {step} of 3</p>
+                <p className="text-muted-foreground">Step {step} of 3</p>
             </div>
 
-            <Card className="bg-neutral-900/50 border-white/5 backdrop-blur-xl">
+            <Card className="bg-card/50 border-border backdrop-blur-xl">
                 <CardContent className="p-8">
                     {step === 1 && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-semibold text-center">What should we call you?</h2>
                             <div className="flex justify-center">
-                                <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center border-2 border-dashed border-white/10">
-                                    <User className="w-10 h-10 text-neutral-500" />
+                                <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-2 border-dashed border-border">
+                                    <User className="w-10 h-10 text-muted-foreground" />
                                 </div>
                             </div>
                             <Input
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 placeholder="Enter your explorer name..."
-                                className="bg-black/40 border-white/10 text-center text-lg h-14"
+                                className="bg-background border-border text-center text-lg h-14"
                                 autoFocus
                             />
                         </div>
@@ -80,7 +80,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                                             onClick={() => setLanguage(lang)}
                                             className={`p-4 rounded-xl border transition-all ${language === lang
                                                 ? 'bg-teal-500/20 border-teal-500 text-teal-400'
-                                                : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                : 'bg-muted border-border hover:bg-muted'
                                                 }`}
                                         >
                                             {lang}
@@ -98,7 +98,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                                             onClick={() => setLevel(l)}
                                             className={`p-3 rounded-xl border text-sm transition-all ${level === l
                                                 ? 'bg-purple-500/20 border-purple-500 text-purple-400'
-                                                : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                : 'bg-muted border-border hover:bg-muted'
                                                 }`}
                                         >
                                             {l}
@@ -119,7 +119,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                                         onClick={() => setAvatar(a.id as AvatarId)} // Cast strictly even though it matches
                                         className={`p-4 rounded-xl border transition-all text-left flex items-center gap-4 ${avatar === a.id
                                             ? a.style + ' ring-2 ring-offset-2 ring-offset-black ring-white/20'
-                                            : 'bg-white/5 border-white/10 hover:bg-white/10 opacity-70 hover:opacity-100'
+                                            : 'bg-muted border-border hover:bg-muted opacity-70 hover:opacity-100'
                                             }`}
                                     >
                                         <div className="text-4xl">{a.emoji}</div>
@@ -138,7 +138,7 @@ const SetupScreen: React.FC<SetupScreenProps> = ({ onComplete }) => {
                             size="lg"
                             disabled={step === 1 && !name}
                             onClick={handleNext}
-                            className="w-full sm:w-auto bg-white text-black hover:bg-neutral-200"
+                            className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                             {step === 3 ? 'Enter World 🌍' : 'Next Step'}
                         </Button>

@@ -63,7 +63,7 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
-            <Card className="bg-neutral-900/50 border-white/5 backdrop-blur-sm">
+            <Card className="bg-card/50 border-border backdrop-blur-sm">
                 <CardHeader>
                     <CardTitle>Session Configuration</CardTitle>
                 </CardHeader>
@@ -72,7 +72,7 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
                     <div className="space-y-2">
                         <Label>Language</Label>
                         <Select value={language} onValueChange={setLanguage}>
-                            <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                            <SelectTrigger className="bg-muted border-border text-foreground">
                                 <SelectValue placeholder="Select Language" />
                             </SelectTrigger>
                             <SelectContent>
@@ -97,12 +97,12 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
                                                 cursor-pointer rounded-xl border p-4 transition-all
                                                 ${selectedLevel === level.id
                                                     ? 'bg-teal-500/10 border-teal-500 ring-1 ring-teal-500'
-                                                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                    : 'bg-muted border-border hover:bg-muted'
                                                 }
                                             `}
                                         >
-                                            <h3 className="font-semibold text-white">{level.title}</h3>
-                                            <p className="text-xs text-neutral-400">{level.description}</p>
+                                            <h3 className="font-semibold text-foreground">{level.title}</h3>
+                                            <p className="text-xs text-muted-foreground">{level.description}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -110,7 +110,7 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
                             <div className="space-y-2">
                                 <Label>Focus Topic</Label>
                                 <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectTrigger className="bg-muted border-border text-foreground">
                                         <SelectValue placeholder="Select Topic" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -138,15 +138,15 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
                                                 cursor-pointer rounded-xl border p-4 transition-all
                                                 ${selectedSkill === skill.id
                                                     ? 'bg-purple-500/10 border-purple-500 ring-1 ring-purple-500'
-                                                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                    : 'bg-muted border-border hover:bg-muted'
                                                 }
                                             `}
                                         >
-                                            <div className="mb-3 p-2 bg-white/10 w-fit rounded-lg">
-                                                <Icon className="w-5 h-5 text-white" />
+                                            <div className="mb-3 p-2 bg-muted w-fit rounded-lg">
+                                                <Icon className="w-5 h-5 text-foreground" />
                                             </div>
-                                            <h3 className="font-semibold text-white">{skill.title}</h3>
-                                            <p className="text-xs text-neutral-400">{skill.description}</p>
+                                            <h3 className="font-semibold text-foreground">{skill.title}</h3>
+                                            <p className="text-xs text-muted-foreground">{skill.description}</p>
                                         </div>
                                     );
                                 })}
@@ -160,7 +160,7 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
                             <div className="space-y-2">
                                 <Label>Experience Level / Role</Label>
                                 <Select value={selectedRole} onValueChange={setSelectedRole}>
-                                    <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                    <SelectTrigger className="bg-muted border-border text-foreground">
                                         <SelectValue placeholder="Select Role" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -181,12 +181,12 @@ const PracticeConfig = ({ module, onStart }: PracticeConfigProps) => {
                                                 cursor-pointer rounded-xl border p-4 transition-all
                                                 ${selectedMode === mode.id
                                                     ? 'bg-blue-500/10 border-blue-500 ring-1 ring-blue-500'
-                                                    : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                                    : 'bg-muted border-border hover:bg-muted'
                                                 }
                                             `}
                                         >
-                                            <h3 className="font-semibold text-white">{mode.title}</h3>
-                                            <p className="text-xs text-neutral-400">{mode.description}</p>
+                                            <h3 className="font-semibold text-foreground">{mode.title}</h3>
+                                            <p className="text-xs text-muted-foreground">{mode.description}</p>
                                         </div>
                                     ))}
                                 </div>

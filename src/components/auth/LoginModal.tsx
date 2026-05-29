@@ -28,12 +28,12 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-md bg-neutral-900 border-neutral-800 text-white">
+            <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
                 <DialogHeader>
                     <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-teal-400 to-blue-500 bg-clip-text text-transparent">
                         Welcome Back
                     </DialogTitle>
-                    <DialogDescription className="text-center text-neutral-400">
+                    <DialogDescription className="text-center text-muted-foreground">
                         Sign in to continue your progress and access the dashboard.
                     </DialogDescription>
                 </DialogHeader>
@@ -41,7 +41,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                     <div className="w-full flex justify-center">
                         <SignInButton onSuccess={handleSuccess} />
                     </div>
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs text-muted-foreground">
                         By signing in, you agree to our Terms of Service and Privacy Policy.
                     </p>
                 </div>

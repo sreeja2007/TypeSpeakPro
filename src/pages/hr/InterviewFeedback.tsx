@@ -31,8 +31,8 @@ const HRFeedback = ({ results, onRetry }: HRFeedbackProps) => {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4 animate-in fade-in">
                 <Loader2 className="w-12 h-12 text-teal-400 animate-spin" />
-                <h3 className="text-xl font-medium text-white">AI is analyzing your response...</h3>
-                <p className="text-neutral-400">Checking grammar, tone, and relevance.</p>
+                <h3 className="text-xl font-medium text-foreground">AI is analyzing your response...</h3>
+                <p className="text-muted-foreground">Checking grammar, tone, and relevance.</p>
             </div>
         );
     }
@@ -43,11 +43,11 @@ const HRFeedback = ({ results, onRetry }: HRFeedbackProps) => {
         <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold text-white mb-2">Interview Feedback</h2>
-                    <p className="text-neutral-400">Here's how you performed on the last question.</p>
+                    <h2 className="text-3xl font-bold text-foreground mb-2">Interview Feedback</h2>
+                    <p className="text-muted-foreground">Here's how you performed on the last question.</p>
                 </div>
                 <div className="flex gap-4">
-                    <Button variant="outline" onClick={onRetry} className="border-white/10 hover:bg-white/5">
+                    <Button variant="outline" onClick={onRetry} className="border-border hover:bg-muted">
                         <RefreshCw className="w-4 h-4 mr-2" /> practice Again
                     </Button>
                     <Button className="bg-teal-600 hover:bg-teal-700" onClick={onRetry}>
@@ -58,7 +58,7 @@ const HRFeedback = ({ results, onRetry }: HRFeedbackProps) => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Scores */}
-                <Card className="md:col-span-1 bg-neutral-900/50 border-white/5">
+                <Card className="md:col-span-1 bg-card/50 border-border">
                     <CardHeader>
                         <CardTitle>Performance Score</CardTitle>
                     </CardHeader>
@@ -77,18 +77,18 @@ const HRFeedback = ({ results, onRetry }: HRFeedbackProps) => {
                 </Card>
 
                 {/* Detailed Analysis */}
-                <Card className="md:col-span-2 bg-neutral-900/50 border-white/5">
+                <Card className="md:col-span-2 bg-card/50 border-border">
                     <CardHeader>
                         <CardTitle>AI Analysis</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <div className="space-y-2">
-                            <h4 className="flex items-center gap-2 text-white font-medium">
+                            <h4 className="flex items-center gap-2 text-foreground font-medium">
                                 <TrendingUp className="w-4 h-4 text-purple-400" /> Improvement Tips
                             </h4>
                             <ul className="space-y-2">
                                 {analysis.improvements.map((tip, i) => (
-                                    <li key={i} className="flex gap-2 text-sm text-neutral-300 bg-white/5 p-3 rounded-lg">
+                                    <li key={i} className="flex gap-2 text-sm text-foreground bg-muted p-3 rounded-lg">
                                         <span className="text-purple-400">•</span> {tip}
                                     </li>
                                 ))}
@@ -96,19 +96,19 @@ const HRFeedback = ({ results, onRetry }: HRFeedbackProps) => {
                         </div>
 
                         <div className="space-y-2">
-                            <h4 className="flex items-center gap-2 text-white font-medium">
+                            <h4 className="flex items-center gap-2 text-foreground font-medium">
                                 <CheckCircle className="w-4 h-4 text-green-400" /> Corrected Version
                             </h4>
-                            <div className="text-sm leading-relaxed text-neutral-300 bg-green-500/5 border border-green-500/10 p-4 rounded-lg">
+                            <div className="text-sm leading-relaxed text-foreground bg-green-500/5 border border-green-500/10 p-4 rounded-lg">
                                 {analysis.corrected_text}
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <h4 className="flex items-center gap-2 text-white font-medium">
-                                <AlertCircle className="w-4 h-4 text-neutral-400" /> Your Transcript
+                            <h4 className="flex items-center gap-2 text-foreground font-medium">
+                                <AlertCircle className="w-4 h-4 text-muted-foreground" /> Your Transcript
                             </h4>
-                            <div className="text-sm leading-relaxed text-neutral-400 italic">
+                            <div className="text-sm leading-relaxed text-muted-foreground italic">
                                 "{results.transcript}"
                             </div>
                         </div>
@@ -121,11 +121,11 @@ const HRFeedback = ({ results, onRetry }: HRFeedbackProps) => {
 
 const ScoreRow = ({ label, score }: { label: string, score: number }) => (
     <div className="flex items-center justify-between">
-        <span className="text-sm text-neutral-400">{label}</span>
-        <div className="flex items-center gap-2 h-2 flex-1 mx-4 bg-white/5 rounded-full overflow-hidden">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <div className="flex items-center gap-2 h-2 flex-1 mx-4 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-teal-500" style={{ width: `${score * 10}%` }} />
         </div>
-        <span className="text-sm font-bold text-white">{score}</span>
+        <span className="text-sm font-bold text-foreground">{score}</span>
     </div>
 );
 

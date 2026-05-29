@@ -66,6 +66,8 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
     const [error, setError] = useState<string | null>(null);
 
     const recognitionRef = useRef<SpeechRecognition | null>(null);
+    const recognitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const startedRef = useRef(false);
 
     const hasRecognitionSupport = isSpeechRecognitionSupported();
     const hasSynthesisSupport = isSpeechSynthesisSupported();
@@ -96,6 +98,9 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
                 setTranscript(prev => prev + ' ' + finalTranscript);
             }
             setInterimTranscript(currentInterim);
+            if (finalTranscript || currentInterim) {
+                clearRecognitionTimeout();
+            }
         };
 
         recognition.onerror = (event: any) => {
@@ -110,6 +115,9 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
 
         recognition.onend = () => {
             setIsListening(false);
+            startedRef.current = false;
+            clearRecognitionTimeout();
+            setStatus(prev => prev === 'recording' ? 'idle' : prev);
         };
 
         recognitionRef.current = recognition;
@@ -118,8 +126,9 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
             if (recognitionRef.current) {
                 recognitionRef.current.abort();
             }
+            clearRecognitionTimeout();
         };
-    }, [language, hasRecognitionSupport]);
+    }, [language, hasRecognitionSupport, clearRecognitionTimeout]);
 
     const startListening = useCallback(() => {
         if (!hasRecognitionSupport) {
@@ -145,8 +154,11 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
         if (recognitionRef.current && isListening) {
             recognitionRef.current.stop();
             setIsListening(false);
+            startedRef.current = false;
+            setStatus('idle');
+            clearRecognitionTimeout();
         }
-    }, [isListening]);
+    }, [clearRecognitionTimeout, isListening]);
 
     const resetTranscript = useCallback(() => {
         setTranscript('');

@@ -54,7 +54,7 @@ const PracticeHub = () => {
 
     if (!currentModule) {
         return (
-            <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center flex-col gap-4">
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center flex-col gap-4">
                 <h1 className="text-2xl">Module not found</h1>
                 <Button onClick={() => navigate('/voice-practice')}>Go Back</Button>
             </div>
@@ -62,17 +62,17 @@ const PracticeHub = () => {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-teal-500/30 flex flex-col">
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-teal-500/30 flex flex-col">
             <Navbar forceOpaque={true} />
 
             <main className="flex-1 container mx-auto px-4 pt-20 pb-4">
                 {currentModule.id !== 'hr' && (
                     <div className="mb-8">
-                        <Button variant="ghost" className="pl-0 hover:text-teal-400 text-neutral-400" onClick={() => navigate('/voice-practice')}>
+                        <Button variant="ghost" className="pl-0 hover:text-teal-400 text-muted-foreground" onClick={() => navigate('/voice-practice')}>
                             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Modules
                         </Button>
                         <h1 className="text-3xl font-bold mt-2">{currentModule.title}</h1>
-                        <p className="text-neutral-400">{currentModule.description}</p>
+                        <p className="text-muted-foreground">{currentModule.description}</p>
                     </div>
                 )}
 

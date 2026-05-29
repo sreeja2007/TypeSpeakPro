@@ -11,11 +11,16 @@ import { LISTENING_SCENARIOS, ListeningScenario } from '@/data/listeningScenario
 import confetti from 'canvas-confetti';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
+import { InlineError, SaveIndicator } from '@/components/async';
+import { useAsyncState } from '@/hooks/useAsyncState';
+import { logAsyncError, toUserSafeError } from '@/types/async';
 
 const ListeningPractice = () => {
     const navigate = useNavigate();
-    const { speak, isSpeaking, cancelSpeech } = useSpeech();
+    const { speak, isSpeaking, cancelSpeech, error: speechError } = useSpeech();
     const { user } = useAuth();
+    const saveState = useAsyncState<void>();
+    const lastScoreRef = React.useRef<{ correctCount: number; total: number } | null>(null);
 
     // Filter State
     const [selectedLevel, setSelectedLevel] = useState<'All' | 'Easy' | 'Medium' | 'Hard'>('All');
@@ -58,6 +63,37 @@ const ListeningPractice = () => {
         setUserAnswers(prev => ({ ...prev, [qIndex]: optionIndex }));
     };
 
+    const saveListeningScore = async (correctCount: number, total: number) => {
+        lastScoreRef.current = { correctCount, total };
+        if (!user?.id) return;
+
+        saveState.setStatus('saving');
+        try {
+            const points = correctCount * 10;
+            const { error } = await supabase.from('practice_results').insert({
+                user_id: user.id,
+                practice_type: 'listening',
+                score: points,
+                accuracy: Math.round((correctCount / total) * 100)
+            });
+            if (error) throw error;
+            saveState.setData(undefined, 'success');
+            toast.success(`Saved ${points} points!`);
+        } catch (error) {
+            logAsyncError('listening.saveScore', error);
+            saveState.setError(toUserSafeError(error, {
+                title: 'Score was not saved',
+                message: 'Your answers are shown below. Retry saving when your connection is stable.',
+            }));
+        }
+    };
+
+    const retrySave = () => {
+        if (lastScoreRef.current) {
+            saveListeningScore(lastScoreRef.current.correctCount, lastScoreRef.current.total);
+        }
+    };
+
     const checkAnswers = () => {
         const answeredCount = Object.keys(userAnswers).length;
         if (answeredCount < scenario.questions.length) {
@@ -82,21 +118,7 @@ const ListeningPractice = () => {
             toast.error("Some answers are incorrect. Check the red boxes!");
         }
 
-        // Save Result
-        if (user?.id) {
-            const saveScore = async () => {
-                const points = correctCount * 10; // 10 points per correct answer
-                const { error } = await supabase.from('practice_results').insert({
-                    user_id: user.id,
-                    practice_type: 'listening', // or 'vocal' as per user request mapping? User said "voive practice and vocal practice". Let's stick to internal names 'listening' and map it later.
-                    score: points,
-                    accuracy: Math.round((correctCount / scenario.questions.length) * 100)
-                });
-                if (error) console.error('Error saving score:', error);
-                else toast.success(`Saved ${points} points!`);
-            };
-            saveScore();
-        }
+        saveListeningScore(correctCount, scenario.questions.length);
 
         setShowResults(true);
     };
@@ -115,7 +137,7 @@ const ListeningPractice = () => {
     // safe check
     if (!scenario) {
         return (
-            <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+            <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
                 <div className="text-center">
                     <p className="mb-4">No scenarios found for this level.</p>
                     <Button onClick={() => setSelectedLevel('All')}>Show All</Button>
@@ -125,21 +147,21 @@ const ListeningPractice = () => {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-950 text-white font-sans selection:bg-teal-500/30 flex flex-col">
+        <div className="min-h-screen bg-background text-foreground font-sans selection:bg-teal-500/30 flex flex-col">
             <Navbar forceOpaque={true} />
 
             <main className="flex-1 container mx-auto px-4 pt-24 pb-12">
                 <div className="flex gap-4 mb-8">
                     <Button
                         variant="ghost"
-                        className="hover:text-teal-400 text-neutral-400 pl-0"
+                        className="hover:text-teal-400 text-muted-foreground pl-0"
                         onClick={() => navigate('/voice-practice/communication')}
                     >
                         <ArrowLeft className="w-4 h-4 mr-2" /> Back to Modules
                     </Button>
                     <Button
                         variant="ghost"
-                        className="hover:text-teal-400 text-neutral-400 pl-0"
+                        className="hover:text-teal-400 text-muted-foreground pl-0"
                         onClick={() => navigate('/')}
                     >
                         <Home className="w-4 h-4 mr-2" /> Home
@@ -157,7 +179,7 @@ const ListeningPractice = () => {
                                     px-4 py-2 rounded-full border transition-all text-sm font-medium
                                     ${selectedLevel === level
                                         ? 'bg-teal-500 text-white border-teal-500 shadow-lg shadow-teal-500/20'
-                                        : 'bg-neutral-900 text-neutral-400 border-white/10 hover:bg-white/5'}
+                                        : 'bg-card text-muted-foreground border-border hover:bg-muted'}
                                 `}
                             >
                                 {level}
@@ -166,13 +188,13 @@ const ListeningPractice = () => {
                     </div>
 
                     {/* Audio Player Card */}
-                    <Card className="bg-neutral-900/50 border-white/5">
+                    <Card className="bg-card/50 border-border">
                         <CardHeader>
                             <div className="flex justify-between items-center flex-wrap gap-4">
                                 <CardTitle className="text-2xl flex items-center gap-2">
                                     <Ear className="w-6 h-6 text-teal-400" />
                                     {scenario.title}
-                                    <span className={`text-xs px-2 py-0.5 rounded border border-white/10 ${scenario.level === 'Easy' ? 'text-green-400 bg-green-500/10' :
+                                    <span className={`text-xs px-2 py-0.5 rounded border border-border ${scenario.level === 'Easy' ? 'text-green-400 bg-green-500/10' :
                                         scenario.level === 'Medium' ? 'text-yellow-400 bg-yellow-500/10' :
                                             'text-red-400 bg-red-500/10'
                                         }`}>
@@ -181,11 +203,11 @@ const ListeningPractice = () => {
                                 </CardTitle>
 
                                 <div className="flex items-center gap-3">
-                                    <Globe className="w-4 h-4 text-neutral-400" />
+                                    <Globe className="w-4 h-4 text-muted-foreground" />
                                     <select
                                         value={selectedAccent}
                                         onChange={(e) => setSelectedAccent(e.target.value)}
-                                        className="bg-black/40 border border-white/10 rounded-lg px-3 py-1 text-sm text-neutral-200 focus:outline-none focus:border-teal-500"
+                                        className="bg-background border border-border rounded-lg px-3 py-1 text-sm text-foreground focus:outline-none focus:border-teal-500"
                                     >
                                         <option value="en-US">🇺🇸 US English</option>
                                         <option value="en-GB">🇬🇧 UK English</option>
@@ -203,19 +225,21 @@ const ListeningPractice = () => {
                                     size="icon"
                                     className="w-16 h-16 rounded-full bg-teal-500 hover:bg-teal-600 text-white shadow-lg z-10"
                                     onClick={isSpeaking ? cancelSpeech : handlePlay}
+                                    aria-label={isSpeaking ? 'Pause listening scenario' : 'Play listening scenario'}
                                 >
                                     {isSpeaking ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
                                 </Button>
                             </div>
-                            <p className="text-neutral-400 text-sm">Click play to listen to the scenario.</p>
-                            <p className="text-neutral-500 text-xs mt-2">{filteredScenarios.length} scenarios in this list</p>
+                            <p className="text-muted-foreground text-sm">Click play to listen to the scenario.</p>
+                            <p className="text-muted-foreground text-xs mt-2">{filteredScenarios.length} scenarios in this list</p>
+                            <InlineError error={speechError} onRetry={handlePlay} className="mt-4 w-full max-w-md" />
                         </CardContent>
                     </Card>
 
                     {/* Quiz Section */}
                     <div className="space-y-6">
                         {scenario.questions.map((q, qIndex) => (
-                            <Card key={qIndex} className="bg-neutral-900/50 border-white/5">
+                            <Card key={qIndex} className="bg-card/50 border-border">
                                 <CardContent className="p-6">
                                     <h3 className="font-semibold text-lg mb-4">{qIndex + 1}. {q.q}</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -223,7 +247,7 @@ const ListeningPractice = () => {
                                             const isSelected = userAnswers[qIndex] === optIndex;
                                             const isCorrect = q.answer === optIndex;
 
-                                            let cardStyle = "border-white/10 hover:bg-white/5";
+                                            let cardStyle = "border-border hover:bg-muted";
                                             let animation = "";
 
                                             if (showResults) {
@@ -232,24 +256,26 @@ const ListeningPractice = () => {
                                                     cardStyle = "border-red-500 bg-red-500/10 text-red-400";
                                                     animation = "animate-[shake_0.5s_ease-in-out]";
                                                 }
-                                                else if (!isSelected) cardStyle = "opacity-50 border-white/5"; // Dim others
+                                                else if (!isSelected) cardStyle = "opacity-50 border-border"; // Dim others
                                             } else if (isSelected) {
                                                 cardStyle = "border-teal-500 bg-teal-500/10 text-teal-400";
                                             }
 
                                             return (
-                                                <div
+                                                <button
+                                                    type="button"
                                                     key={optIndex}
                                                     onClick={() => handleAnswer(qIndex, optIndex)}
+                                                    disabled={showResults}
                                                     className={`
-                                                        p-4 rounded-lg border cursor-pointer transition-all flex justify-between items-center
+                                                        p-4 rounded-lg border cursor-pointer transition-all flex justify-between items-center text-left disabled:cursor-default
                                                         ${cardStyle} ${animation}
                                                     `}
                                                 >
                                                     {opt}
                                                     {showResults && isCorrect && <CheckCircle className="w-4 h-4 text-green-500" />}
                                                     {showResults && isSelected && !isCorrect && <XCircle className="w-4 h-4 text-red-500" />}
-                                                </div>
+                                                </button>
                                             );
                                         })}
                                     </div>
@@ -260,6 +286,8 @@ const ListeningPractice = () => {
 
                     {/* Footer Controls */}
                     <div className="flex justify-end gap-4">
+                        <SaveIndicator status={saveState.status} />
+                        <InlineError error={saveState.error} onRetry={retrySave} />
                         {!showResults ? (
                             <Button size="lg" onClick={checkAnswers} className="bg-teal-600 hover:bg-teal-700">
                                 Check Answers

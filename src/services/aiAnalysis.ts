@@ -21,8 +21,14 @@ export interface AnalysisResult {
 }
 
 export const analyzeAnswer = async (question: string, transcript: string, level: string): Promise<AnalysisResult> => {
+    if (!transcript.trim()) {
+        throw new Error('EMPTY_TRANSCRIPT');
+    }
+
     if (!OPENAI_API_KEY) {
-        console.warn("No OpenAI API Key found. Returning simulated results.");
+        if (import.meta.env.DEV) {
+            console.warn("No OpenAI API Key found. Returning simulated results.");
+        }
         return simulateAnalysis(transcript);
     }
 
@@ -128,6 +134,10 @@ export interface WritingAnalysisResult {
 }
 
 export const analyzeWriting = async (text: string, topic: string): Promise<WritingAnalysisResult> => {
+    if (!text.trim()) {
+        throw new Error('EMPTY_WRITING_TEXT');
+    }
+
     if (!OPENAI_API_KEY) {
         return {
             grammar_score: 8,

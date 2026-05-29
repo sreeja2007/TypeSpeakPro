@@ -5,6 +5,16 @@
 
 ![TypeSpeak Pro Banner](./public/logo.jpg)
 
+---
+
+## 🌐 Live Demo
+
+Experience TypeSpeak Pro live here:
+
+🔗 [Launch TypeSpeak Pro](https://type-speak-pro.vercel.app/)
+
+---
+
 ## 💡 The Vision
 **This is not just another typing test.**
 
