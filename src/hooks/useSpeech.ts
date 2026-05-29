@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { isSpeechRecognitionSupported, isSpeechSynthesisSupported } from '@/lib/runtime-guards';
 
 // Type definitions for Web Speech API
 interface SpeechRecognition extends EventTarget {
@@ -32,6 +33,29 @@ interface UseSpeechReturn {
     cancelSpeech: () => void;
     hasRecognitionSupport: boolean;
     hasSynthesisSupport: boolean;
+    error: string | null;
+}
+
+/**
+ * Maps Web Speech API error codes to user-friendly messages.
+ */
+function mapRecognitionError(errorCode: string): string {
+    switch (errorCode) {
+        case 'not-allowed':
+            return 'Microphone access was denied. Please allow microphone permission in your browser settings.';
+        case 'no-speech':
+            return 'No speech was detected. Please try speaking again.';
+        case 'network':
+            return 'A network error occurred during speech recognition. Check your internet connection.';
+        case 'aborted':
+            return 'Speech recognition was interrupted.';
+        case 'audio-capture':
+            return 'No microphone was found. Please connect a microphone and try again.';
+        case 'service-not-allowed':
+            return 'Speech recognition service is not allowed. Please check your browser settings.';
+        default:
+            return `Speech recognition error: ${errorCode}`;
+    }
 }
 
 export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
@@ -39,11 +63,12 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
     const [transcript, setTranscript] = useState('');
     const [interimTranscript, setInterimTranscript] = useState('');
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const recognitionRef = useRef<SpeechRecognition | null>(null);
 
-    const hasRecognitionSupport = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
-    const hasSynthesisSupport = 'speechSynthesis' in window;
+    const hasRecognitionSupport = isSpeechRecognitionSupported();
+    const hasSynthesisSupport = isSpeechSynthesisSupported();
 
     useEffect(() => {
         if (!hasRecognitionSupport) return;
@@ -74,8 +99,13 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
         };
 
         recognition.onerror = (event: any) => {
-            console.error('Speech recognition error', event.error);
-            setIsListening(false);
+            const errorMessage = mapRecognitionError(event.error);
+            console.error('Speech recognition error:', event.error);
+            setError(errorMessage);
+            // Don't set isListening to false for 'no-speech' — it auto-recovers
+            if (event.error !== 'no-speech') {
+                setIsListening(false);
+            }
         };
 
         recognition.onend = () => {
@@ -92,15 +122,24 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
     }, [language, hasRecognitionSupport]);
 
     const startListening = useCallback(() => {
+        if (!hasRecognitionSupport) {
+            setError('Speech recognition is not supported in this browser.');
+            return;
+        }
         if (recognitionRef.current && !isListening) {
             try {
+                // Abort any previous session to prevent DOMException on duplicate start
+                try { recognitionRef.current.abort(); } catch { /* already stopped */ }
+                setError(null);
                 recognitionRef.current.start();
                 setIsListening(true);
-            } catch (error) {
-                console.error('Error starting recognition:', error);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Failed to start speech recognition.';
+                console.error('Error starting recognition:', err);
+                setError(message);
             }
         }
-    }, [isListening]);
+    }, [isListening, hasRecognitionSupport]);
 
     const stopListening = useCallback(() => {
         if (recognitionRef.current && isListening) {
@@ -112,10 +151,16 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
     const resetTranscript = useCallback(() => {
         setTranscript('');
         setInterimTranscript('');
+        setError(null);
     }, []);
 
     const speak = useCallback((text: string, lang: string = language) => {
-        if (!hasSynthesisSupport) return;
+        if (!hasSynthesisSupport) {
+            setError('Speech synthesis is not supported in this browser.');
+            return;
+        }
+
+        if (!text || text.trim() === '') return;
 
         // Cancel any current speech
         window.speechSynthesis.cancel();
@@ -137,7 +182,13 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
 
         utterance.onstart = () => setIsSpeaking(true);
         utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = () => setIsSpeaking(false);
+        utterance.onerror = (event) => {
+            setIsSpeaking(false);
+            // 'interrupted' and 'canceled' are expected when user cancels — not real errors
+            if (event.error !== 'interrupted' && event.error !== 'canceled') {
+                setError(`Speech synthesis error: ${event.error}`);
+            }
+        };
 
         window.speechSynthesis.speak(utterance);
     }, [language, hasSynthesisSupport]);
@@ -160,6 +211,7 @@ export const useSpeech = (language: string = 'en-US'): UseSpeechReturn => {
         isSpeaking,
         cancelSpeech,
         hasRecognitionSupport,
-        hasSynthesisSupport
+        hasSynthesisSupport,
+        error
     };
 };

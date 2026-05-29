@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { isMediaRecorderSupported, isSpeechRecognitionSupported } from '@/lib/runtime-guards';
 
 interface UseVoiceRecorderProps {
   maxDuration?: number; // in seconds
@@ -22,6 +23,32 @@ declare global {
   interface Window {
     webkitSpeechRecognition: any;
   }
+}
+
+/**
+ * Maps microphone/media errors to user-friendly messages.
+ */
+function mapMediaError(err: unknown): string {
+  if (err instanceof DOMException) {
+    switch (err.name) {
+      case 'NotAllowedError':
+        return 'Microphone access was denied. Please allow microphone permission in your browser settings.';
+      case 'NotFoundError':
+        return 'No microphone was found. Please connect a microphone and try again.';
+      case 'NotReadableError':
+        return 'Your microphone is currently in use by another application.';
+      case 'OverconstrainedError':
+        return 'Microphone does not meet the required constraints.';
+      case 'AbortError':
+        return 'Microphone access was interrupted. Please try again.';
+      default:
+        return `Microphone error: ${err.message}`;
+    }
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return 'Failed to access microphone.';
 }
 
 export const useVoiceRecorder = ({
@@ -70,6 +97,7 @@ export const useVoiceRecorder = ({
       } catch (e) {
         // Ignore error if already stopped
       }
+      recognitionRef.current = null;
     }
 
     if (streamRef.current) {
@@ -81,7 +109,40 @@ export const useVoiceRecorder = ({
     setIsPaused(false);
   }, [clearTimer]);
 
+  // Cleanup on unmount — stop all media tracks, timers, and recognition
+  useEffect(() => {
+    return () => {
+      clearTimer();
+
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch { /* already stopped */ }
+        recognitionRef.current = null;
+      }
+
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try { mediaRecorderRef.current.stop(); } catch { /* already stopped */ }
+      }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [clearTimer]);
+
   const startRecording = useCallback(async () => {
+    // Runtime capability check
+    if (!isMediaRecorderSupported()) {
+      setError('Audio recording is not supported in this browser. Please use a modern browser like Chrome or Edge.');
+      return;
+    }
+
+    // Prevent duplicate recording sessions
+    if (isRecording) {
+      console.warn('Recording is already in progress.');
+      return;
+    }
+
     try {
       setError(null);
       setAudioBlob(null);
@@ -127,8 +188,14 @@ export const useVoiceRecorder = ({
       mediaRecorder.start(100);
 
       // 3. Setup Speech Recognition (Web Speech API)
-      if ('webkitSpeechRecognition' in window) {
-        const recognition = new window.webkitSpeechRecognition();
+      if (isSpeechRecognitionSupported()) {
+        // Abort any previous recognition session to prevent duplicates
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch { /* already stopped */ }
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
@@ -144,17 +211,16 @@ export const useVoiceRecorder = ({
         };
 
         recognition.onerror = (event: any) => {
-          console.warn("Speech recognition error", event.error);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.warn("Speech recognition error", event.error);
+          // Don't treat 'no-speech' as a fatal error — it auto-recovers
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            console.warn("Speech recognition error:", event.error);
+          }
         };
 
         recognition.start();
         recognitionRef.current = recognition;
       } else {
-        console.warn("Web Speech API not supported in this browser.");
+        console.warn("Web Speech API not supported in this browser. Transcription will not be available.");
       }
 
       setIsRecording(true);
@@ -173,10 +239,10 @@ export const useVoiceRecorder = ({
 
     } catch (err) {
       setHasPermission(false);
-      setError(err instanceof Error ? err.message : 'Failed to access microphone');
+      setError(mapMediaError(err));
       console.error('Error accessing microphone:', err);
     }
-  }, [maxDuration, onRecordingComplete, onTimeUpdate, stopRecording]);
+  }, [maxDuration, isRecording, onRecordingComplete, onTimeUpdate, stopRecording]);
 
   return {
     isRecording,

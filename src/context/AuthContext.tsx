@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
+import { googleTokenPayloadSchema, normalizeError } from '@/lib/validation';
 
 interface User {
     id?: string; // Add ID from database
@@ -23,6 +24,48 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * Checks if a JWT token's `exp` claim has passed.
+ * Returns true if the token is expired or if exp is missing.
+ */
+function isTokenExpired(exp: number | undefined): boolean {
+    if (exp === undefined || exp === null) return true;
+    // exp is in seconds, Date.now() is in milliseconds
+    return Date.now() >= exp * 1000;
+}
+
+/**
+ * Safely decodes and validates a Google JWT token.
+ * Returns the validated payload or null if invalid/expired.
+ */
+function decodeAndValidateToken(token: string): { name: string; email: string; picture: string; sub: string } | null {
+    try {
+        const decoded: unknown = jwtDecode(token);
+        const result = googleTokenPayloadSchema.safeParse(decoded);
+
+        if (!result.success) {
+            console.error("Token validation failed:", result.error.issues);
+            return null;
+        }
+
+        if (isTokenExpired(result.data.exp)) {
+            console.warn("Token has expired. Clearing session.");
+            return null;
+        }
+
+        return {
+            name: result.data.name,
+            email: result.data.email,
+            picture: result.data.picture,
+            sub: result.data.sub,
+        };
+    } catch (error) {
+        const normalized = normalizeError(error, "Failed to decode authentication token.");
+        console.error("Token decode error:", normalized.message);
+        return null;
+    }
+}
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -52,26 +95,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const checkAuth = async () => {
             const token = localStorage.getItem('google_token');
             if (token) {
-                try {
-                    const decoded: any = jwtDecode(token);
-                    // Initial load from token
-                    const initialUser = {
-                        name: decoded.name,
-                        email: decoded.email,
-                        picture: decoded.picture,
-                        sub: decoded.sub,
-                    };
-                    setUser(initialUser);
-
-                    // Then fetch the real DB ID
-                    const id = await fetchSupabaseUser(decoded.email);
-                    console.log("Supabase ID fetched for auto-login:", id);
-                    if (id) {
-                        setUser(prev => prev ? { ...prev, id } : null);
-                    }
-                } catch (error) {
-                    console.error("Invalid token found", error);
+                const userData = decodeAndValidateToken(token);
+                if (!userData) {
+                    // Token is invalid or expired — clean up
                     localStorage.removeItem('google_token');
+                    setIsLoading(false);
+                    return;
+                }
+
+                setUser(userData);
+
+                // Then fetch the real DB ID
+                const id = await fetchSupabaseUser(userData.email);
+                console.log("Supabase ID fetched for auto-login:", id);
+                if (id) {
+                    setUser(prev => prev ? { ...prev, id } : null);
                 }
             }
             setIsLoading(false);
@@ -82,13 +120,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const login = async (token: string) => {
         try {
-            const decoded: any = jwtDecode(token);
-            const userData = {
-                name: decoded.name,
-                email: decoded.email,
-                picture: decoded.picture,
-                sub: decoded.sub,
-            };
+            const userData = decodeAndValidateToken(token);
+            if (!userData) {
+                toast.error("Invalid login token. Please try again.");
+                return;
+            }
 
             // Optimistic update
             setUser(userData);
@@ -124,7 +160,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
 
         } catch (error) {
-            console.error("Login failed", error);
+            const normalized = normalizeError(error, "Login failed.");
+            console.error("Login failed:", normalized.message);
             toast.error("Failed to login. Please try again.");
         }
     };
