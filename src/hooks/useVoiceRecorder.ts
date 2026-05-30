@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { AsyncErrorMetadata, AsyncStatus } from '@/types/async';
-import { createAsyncError, logAsyncError } from '@/types/async';
+import { isMediaRecorderSupported, isSpeechRecognitionSupported } from '@/lib/runtime-guards';
 
 interface UseVoiceRecorderProps {
   maxDuration?: number; // in seconds
@@ -27,6 +26,32 @@ declare global {
   interface Window {
     webkitSpeechRecognition: any;
   }
+}
+
+/**
+ * Maps microphone/media errors to user-friendly messages.
+ */
+function mapMediaError(err: unknown): string {
+  if (err instanceof DOMException) {
+    switch (err.name) {
+      case 'NotAllowedError':
+        return 'Microphone access was denied. Please allow microphone permission in your browser settings.';
+      case 'NotFoundError':
+        return 'No microphone was found. Please connect a microphone and try again.';
+      case 'NotReadableError':
+        return 'Your microphone is currently in use by another application.';
+      case 'OverconstrainedError':
+        return 'Microphone does not meet the required constraints.';
+      case 'AbortError':
+        return 'Microphone access was interrupted. Please try again.';
+      default:
+        return `Microphone error: ${err.message}`;
+    }
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return 'Failed to access microphone.';
 }
 
 export const useVoiceRecorder = ({
@@ -77,6 +102,7 @@ export const useVoiceRecorder = ({
       } catch (e) {
         // Ignore error if already stopped
       }
+      recognitionRef.current = null;
     }
 
     if (streamRef.current) {
@@ -89,25 +115,37 @@ export const useVoiceRecorder = ({
     setStatus('idle');
   }, [clearTimer]);
 
+  // Cleanup on unmount — stop all media tracks, timers, and recognition
+  useEffect(() => {
+    return () => {
+      clearTimer();
+
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch { /* already stopped */ }
+        recognitionRef.current = null;
+      }
+
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        try { mediaRecorderRef.current.stop(); } catch { /* already stopped */ }
+      }
+
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, [clearTimer]);
+
   const startRecording = useCallback(async () => {
-    if (isRecording || isStartingRef.current) {
-      setError(createAsyncError(
-        'Recording already active',
-        'Stop the current recording before starting another one.',
-        { recoveryHint: 'Use the stop button, then try again.' }
-      ));
-      setStatus('retryable-error');
+    // Runtime capability check
+    if (!isMediaRecorderSupported()) {
+      setError('Audio recording is not supported in this browser. Please use a modern browser like Chrome or Edge.');
       return;
     }
 
-    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      setHasPermission(false);
-      setStatus('error');
-      setError(createAsyncError(
-        'Recording is not supported',
-        'This browser cannot record microphone audio. Try Chrome, Edge, or Firefox.',
-        { retryable: false }
-      ));
+    // Prevent duplicate recording sessions
+    if (isRecording) {
+      console.warn('Recording is already in progress.');
       return;
     }
 
@@ -172,8 +210,14 @@ export const useVoiceRecorder = ({
       mediaRecorder.start(100);
 
       // 3. Setup Speech Recognition (Web Speech API)
-      if ('webkitSpeechRecognition' in window) {
-        const recognition = new window.webkitSpeechRecognition();
+      if (isSpeechRecognitionSupported()) {
+        // Abort any previous recognition session to prevent duplicates
+        if (recognitionRef.current) {
+          try { recognitionRef.current.abort(); } catch { /* already stopped */ }
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'en-US';
@@ -189,20 +233,16 @@ export const useVoiceRecorder = ({
         };
 
         recognition.onerror = (event: any) => {
-          logAsyncError("voiceRecorder.recognition", event.error);
-          setError(createAsyncError(
-            'Speech transcript unavailable',
-            event.error === 'not-allowed'
-              ? 'Speech recognition permission was denied. Recording can continue, but transcript capture needs permission.'
-              : 'We could not capture a transcript for this recording.',
-            { code: event.error, recoveryHint: 'Stop and retry if the transcript is required.' }
-          ));
+          // Don't treat 'no-speech' as a fatal error — it auto-recovers
+          if (event.error !== 'no-speech' && event.error !== 'aborted') {
+            console.warn("Speech recognition error:", event.error);
+          }
         };
 
         recognition.start();
         recognitionRef.current = recognition;
       } else {
-        console.warn("Web Speech API not supported in this browser.");
+        console.warn("Web Speech API not supported in this browser. Transcription will not be available.");
       }
 
       setIsRecording(true);
@@ -222,25 +262,10 @@ export const useVoiceRecorder = ({
 
     } catch (err) {
       setHasPermission(false);
-      setStatus('retryable-error');
-      setError(createAsyncError(
-        'Microphone access failed',
-        err instanceof DOMException && err.name === 'NotAllowedError'
-          ? 'Microphone permission was denied. Enable microphone access in your browser settings and retry.'
-          : 'We could not access your microphone. Check the device and try again.',
-        {
-          cause: err,
-          code: err instanceof DOMException ? err.name : undefined,
-          recoveryHint: 'Look for the lock icon in your browser address bar to allow microphone access.',
-        }
-      ));
-      logAsyncError('voiceRecorder.start', err);
-    } finally {
-      isStartingRef.current = false;
+      setError(mapMediaError(err));
+      console.error('Error accessing microphone:', err);
     }
-  }, [isRecording, maxDuration, onTimeUpdate, stopRecording]);
-
-  const clearError = useCallback(() => setError(null), []);
+  }, [maxDuration, isRecording, onRecordingComplete, onTimeUpdate, stopRecording]);
 
   return {
     isRecording,

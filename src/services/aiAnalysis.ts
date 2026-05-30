@@ -1,4 +1,10 @@
-import { logAsyncError } from '@/types/async';
+import { safeJsonParse } from '@/lib/safe-json';
+import { 
+    aiAnalysisResultSchema, 
+    aiWritingAnalysisResultSchema, 
+    aiConversationResponseSchema,
+    normalizeError 
+} from '@/lib/validation';
 
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
 
@@ -60,24 +66,43 @@ export const analyzeAnswer = async (question: string, transcript: string, level:
         });
 
         if (!response.ok) {
-            throw new Error(`AI_REQUEST_FAILED_${response.status}`);
+            const errBody = await response.json().catch(() => ({}));
+            const apiErr = new Error(errBody.error?.message || `OpenAI API returned status ${response.status}`);
+            (apiErr as any).status = response.status;
+            throw apiErr;
         }
 
         const data = await response.json();
         const content = data?.choices?.[0]?.message?.content;
+        
         if (!content) {
-            throw new Error('AI_EMPTY_RESPONSE');
+            throw new Error("OpenAI API returned empty or missing message content.");
         }
-        const result = JSON.parse(content);
+
+        // Safe JSON parsing handles potential markdown formatting
+        const parsedData = safeJsonParse(content, {});
+        
+        // Zod validation with safe boundaries and fallbacks
+        const validated = aiAnalysisResultSchema.safeParse(parsedData);
+        const validatedResult = validated.success ? validated.data : aiAnalysisResultSchema.parse({});
 
         // Calculate overall
-        result.overall_score = Math.round((result.grammar_score + result.fluency_score + result.relevance_score + result.confidence_score) / 4);
+        const overall_score = Math.round(
+            (validatedResult.grammar_score + 
+             validatedResult.fluency_score + 
+             validatedResult.relevance_score + 
+             validatedResult.confidence_score) / 4
+        );
 
-        return result;
+        return {
+            ...validatedResult,
+            overall_score
+        };
 
     } catch (error) {
-        logAsyncError("ai.analyzeAnswer", error);
-        throw new Error('AI_ANALYSIS_UNAVAILABLE');
+        const normalized = normalizeError(error, "Failed to analyze candidate answer.");
+        console.error("OpenAI API Error:", normalized.message);
+        return simulateAnalysis(transcript);
     }
 };
 
@@ -142,7 +167,6 @@ export const analyzeWriting = async (text: string, topic: string): Promise<Writi
                         - grammar_score (0-10)
                         - vocabulary_score (0-10)
                         - tone_score (0-10)
-                        - overall_score (0-10)
                         - feedback (concise critique)
                         - corrections (list of specific fixable errors)
                         - better_version (a rewritten, professional version of the text)`
@@ -158,19 +182,48 @@ export const analyzeWriting = async (text: string, topic: string): Promise<Writi
         });
 
         if (!response.ok) {
-            throw new Error(`AI_REQUEST_FAILED_${response.status}`);
+            const errBody = await response.json().catch(() => ({}));
+            const apiErr = new Error(errBody.error?.message || `OpenAI API returned status ${response.status}`);
+            (apiErr as any).status = response.status;
+            throw apiErr;
         }
 
         const data = await response.json();
         const content = data?.choices?.[0]?.message?.content;
+        
         if (!content) {
-            throw new Error('AI_EMPTY_RESPONSE');
+            throw new Error("OpenAI API returned empty or missing message content.");
         }
-        return JSON.parse(content);
+
+        const parsedData = safeJsonParse(content, {});
+        
+        const validated = aiWritingAnalysisResultSchema.safeParse(parsedData);
+        const validatedResult = validated.success ? validated.data : aiWritingAnalysisResultSchema.parse({});
+
+        // Calculate overall
+        const overall_score = Math.round(
+            (validatedResult.grammar_score + 
+             validatedResult.vocabulary_score + 
+             validatedResult.tone_score) / 3
+        );
+
+        return {
+            ...validatedResult,
+            overall_score
+        };
 
     } catch (error) {
-        logAsyncError("ai.analyzeWriting", error);
-        throw new Error('AI_ANALYSIS_UNAVAILABLE');
+        const normalized = normalizeError(error, "Failed to analyze writing sample.");
+        console.error("OpenAI API Error:", normalized.message);
+        return {
+            grammar_score: 5,
+            vocabulary_score: 5,
+            tone_score: 5,
+            overall_score: 5,
+            feedback: "Error connecting to AI service. Using basic fallback analysis.",
+            corrections: [],
+            better_version: text
+        };
     }
 };
 export interface ConversationResponse {
@@ -194,7 +247,7 @@ export const generateConversationResponse = async (
         return {
             reply: `(Simulated AI) That's interesting! tell me more about "${userText.substring(0, 10)}..."`,
             feedback: isShort ? 'bad' : 'good',
-            scores: { pronunciation: 8, grammar: 7, confidence: 9 }
+            scores: { pronunciation: 4, grammar: 4, confidence: 4 }
         };
     }
 
@@ -228,18 +281,36 @@ export const generateConversationResponse = async (
         });
 
         if (!response.ok) {
-            throw new Error(`AI_REQUEST_FAILED_${response.status}`);
+            const errBody = await response.json().catch(() => ({}));
+            const apiErr = new Error(errBody.error?.message || `OpenAI API returned status ${response.status}`);
+            (apiErr as any).status = response.status;
+            throw apiErr;
         }
 
         const data = await response.json();
         const content = data?.choices?.[0]?.message?.content;
+        
         if (!content) {
-            throw new Error('AI_EMPTY_RESPONSE');
+            throw new Error("OpenAI API returned empty or missing message content.");
         }
-        return JSON.parse(content);
+
+        const parsedData = safeJsonParse(content, {});
+        
+        const validated = aiConversationResponseSchema.safeParse(parsedData);
+        if (validated.success) {
+            return validated.data;
+        } else {
+            console.warn("Conversation Zod validation failed, utilizing default schema values.");
+            return aiConversationResponseSchema.parse({});
+        }
 
     } catch (error) {
-        logAsyncError("ai.generateConversationResponse", error);
-        throw new Error('AI_CONVERSATION_UNAVAILABLE');
+        const normalized = normalizeError(error, "Failed to generate conversation reply.");
+        console.error("OpenAI Conversation Error:", normalized.message);
+        return {
+            reply: "I'm having trouble understanding. Can you say that again?",
+            feedback: 'average',
+            scores: { pronunciation: 3, grammar: 3, confidence: 3 }
+        };
     }
 };
